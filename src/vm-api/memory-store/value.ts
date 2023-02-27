@@ -4,7 +4,8 @@ import { RuntimeSourcePosition } from '../../source'
 import { MemoryCell, VmMemoryIndex } from './cell'
 
 // NativeValue The value stored in VmNativeType cells.
-export type NativeValue = any
+//  This does not allow returning "null".  Should it?
+export type NativeValue = object | number | string
 
 type IterableVisitor = (value: EvaluatedValue) => void
 

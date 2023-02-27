@@ -56,6 +56,7 @@ A user script provides several items:
 * Constant definitions.  Initial values for things, from numbers to strings to full tree layouts, can be constructed in the constants for reference by the script program.
 * Function definitions.  The heart of a program.  This is parsed by the script loader.
 
+
 ## Script Loader
 
 The script loader parses the user [script](#script) into a form usable by the interpreter.  It loads the type definitions into the [type system](#type-system), loads the constants into a constant store, and populates [memory stores](#memory-store) for each function.
@@ -75,6 +76,8 @@ Each function is nothing more than indexed values.  The indexed values may take 
 The return value is also one of the indexed values, and may be either a constant reference or an opcode.
 
 The op code + memory index references allows for the interpreter to memoize values, share them where possible, shorten execution frames, throw away unused values, perform forest detangling and parallel execution, and many other optimizations.
+
+Under the hood, the memory system stores individual values as "cells", which may include evaluated (memoized) values.  Lists and structured types are cells that store collections of references to other cells.  The interpreter gains much of its power by condensing these cells to provide optimal paths through the program.
 
 
 # System Functions
@@ -98,6 +101,10 @@ Out of the box, Caracara provides a very limited set of op codes, and relies upo
 Each opcode has an return type that its assigned-to memory index uses.
 
 In a few cases, an opcode may have a *runtime* return type, such as dynamic lookup.  Due to the strong typing system, the memory value that the opcode is assigned to must have a strong type, which forces the interpreter to perform time consuming runtime type checking.
+
+Opcodes can define whether their arguments must be evaluated to a value or not.  An example of a case where they do not is the `map` function - it can return a new list with each value transformed into an invocation of the function passed to the map + the index value.
+
+If an opcode takes a structured value or iterable value as an argument, then the definition of that opcode can include the construction of the new value.  This is a built-in feature of the functional interpreter and doesn't need explicit opcodes to create a new fixed-length list or structure.
 
 
 ## Interpreter

@@ -26,10 +26,12 @@ export function isVmNativeType(val: VmType): val is VmNativeType {
     return (<VmNativeType>val).internalType !== undefined
 }
 
+export type StructuredKeyType = string
+
 // TypeKey a named key in a structured type.
 //    Note: not a type by itself.
 interface TypeKey {
-    readonly key: string
+    readonly key: StructuredKeyType
     readonly valueType: VmType
 }
 
