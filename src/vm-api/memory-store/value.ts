@@ -18,6 +18,11 @@ export interface IterableValue {
     // reduce? map? size?
 }
 
+// KeyOfValue The value stored in VmKeyOfType cells.
+export interface KeyOfValue {
+    readonly key: string
+}
+
 // StructuredValue The value stored in VmStructuredType calls.
 //   In order for a structured value to be evaluated, all its
 //   keys' values must be evaluated.  This is a non-lazy approach.
@@ -39,7 +44,9 @@ export interface CallableValue {
 }
 
 // EvaluatedValue The value stored in a memory cell after it has been evaluated.
-export type EvaluatedValue = NativeValue | IterableValue | StructuredValue | CallableValue
+//   The type of the evaluated value passed to an opcode is guaranteed to be of the
+//   source type.
+export type EvaluatedValue = NativeValue | IterableValue | StructuredValue | KeyOfValue | CallableValue
 
 // MemoryValue The runtime memory cell and its (possibly) evaluated value.
 export interface MemoryValue {
@@ -48,4 +55,7 @@ export interface MemoryValue {
 
     // value The memoized / evaluated value of the cell, or not set if not evaluated yet.
     readonly value?: EvaluatedValue | undefined
+
+    // If a "unspecified" evaluation method is eventually defined, then a future / promise
+    //   will be made available as a value.
 }

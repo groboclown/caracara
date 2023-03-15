@@ -15,6 +15,7 @@
     "noImplicitReturns": true,
     "skipLibCheck": true,
     "outDir": "./lib/",
+    "rootDir": "./src",
     "sourceMap": true,
     "allowJs": true,
     "types": [
@@ -28,10 +29,9 @@
     "src/**/*.ts",
     "node_modules/@types",
     "src/assets/index.ts"
-    ],
+  ],
   "exclude": [
-      ".git",
-      "node_modules"
-    ]
-  }
-  
+    ".git",
+    "node_modules"
+  ]
+}

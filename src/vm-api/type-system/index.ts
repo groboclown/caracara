@@ -5,13 +5,19 @@ export type {
     VmNativeType,
     VmIterableType,
     VmStructuredType,
-    VmCallableType,   
+    VmKeyOfType,
+    VmCallableType,
+    VmGenericId,
+    VmGenericRef,
 } from './categories'
 export {
+    VmGenericBindHint,
     isVmNativeType,
     isVmIterableType,
     isVmStructuredType,
+    isVmKeyOfType,
     isVmCallableType,
+    isVmGenericRef,
 } from './categories'
 export type {
     TypeStore,

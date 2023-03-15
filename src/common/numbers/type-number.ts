@@ -1,7 +1,8 @@
 // Declares the built-in integer simple type.
 
 import { RuntimeError, VM_BUG_NON_EVALUATED_VALUE, VM_MEMORY_TYPE_CONFUSION } from '../../errors'
-import { createCoreSource, RuntimeSourcePosition } from '../../source'
+import { createCoreSource } from '../../source'
+import { RunTimeSettings } from '../../vm-api/interpreter'
 import { EvaluatedValue, MemoryCell, MemoryValue, VmMemoryIndex } from '../../vm-api/memory-store'
 import { isVmNativeType, VmNativeType } from '../../vm-api/type-system'
 
@@ -30,10 +31,11 @@ export function isMemoryValueInteger(value: MemoryValue): boolean {
     return isEvaluatedInteger(value.value)
 }
 
-export function extractMemoryValueInteger(source: RuntimeSourcePosition, index: VmMemoryIndex, value: MemoryValue): number | RuntimeError {
+export function extractMemoryValueInteger(settings: RunTimeSettings, index: VmMemoryIndex): number | RuntimeError {
+    const value = settings.args[index]
     if (value.value === undefined) {
         return {
-            source,
+            source: settings.source,
             errorId: VM_BUG_NON_EVALUATED_VALUE,
             parameters: {
                 index,
@@ -42,7 +44,7 @@ export function extractMemoryValueInteger(source: RuntimeSourcePosition, index: 
     }
     if (!isMemoryValueInteger(value)) {
         return {
-            source,
+            source: settings.source,
             errorId: VM_MEMORY_TYPE_CONFUSION,
             parameters: {
                 index,
@@ -79,10 +81,11 @@ export function isMemoryValueNumber(value: MemoryValue): boolean {
     return IsEvaluatedNumber(value.value)
 }
 
-export function extractMemoryValueNumber(source: RuntimeSourcePosition, index: VmMemoryIndex, value: MemoryValue): number | RuntimeError {
+export function extractMemoryValueNumber(settings: RunTimeSettings, index: VmMemoryIndex): number | RuntimeError {
+    const value = settings.args[index]
     if (value.value === undefined) {
         return {
-            source,
+            source: settings.source,
             errorId: VM_BUG_NON_EVALUATED_VALUE,
             parameters: {
                 index,
@@ -91,7 +94,7 @@ export function extractMemoryValueNumber(source: RuntimeSourcePosition, index: V
     }
     if (!isMemoryValueNumber(value)) {
         return {
-            source,
+            source: settings.source,
             errorId: VM_MEMORY_TYPE_CONFUSION,
             parameters: {
                 index,

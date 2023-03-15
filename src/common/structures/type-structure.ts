@@ -1,4 +1,4 @@
-// Declares the built-in string simple type.
+// Declares the built-in structure type.
 
 import { RuntimeError, VM_BUG_NON_EVALUATED_VALUE, VM_MEMORY_TYPE_CONFUSION } from '../../errors'
 import { createCoreSource, RuntimeSourcePosition } from '../../source'

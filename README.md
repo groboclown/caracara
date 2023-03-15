@@ -40,12 +40,26 @@ The interpreter has a strong typing system, meaning that it requires all values 
 The interpreter allows for these basic categories:
 
 * Native types.  These are values that the system functions know how to work with.  There should be capability to allow the script to define these values as constants.  The scripts can create aliases for native types, but the underlying native types are incompatible with each other.
-* Iterable types.  Collections of a single type of element.  The collection is very explicitly *non-indexable*.  The number of elements is not enforced by the type (two objects of the same iterable type can be of different lengths).  An iterable type is compatible with another iterable type if the underlying element types are compatible.
+* Iterable types.  Collections of a single type of element.  The collection is very explicitly *non-indexable*.  The number of elements is not enforced by the type (two objects of the same iterable type can be of different lengths).  An iterable type is compatible with another iterable type if the underlying element types are compatible.  Some iterables may be implemented as having infinite size (e.g. a random number generator returns an infinite list of numbers).
 * Structured types.  An explicit list of named keys, each of which can be its own type.  This is not a hashtable, because the keyed values must be present.  With structured types, they are prototype based, meaning that one type may be compatible with another if it provides the same named keys with matching types (there may be more keys).
+* Structured key.  One of the named keys in a structured type.
 * Callable types.  Scripts may define functions, and they are assigned a type and may be used as a value.
 * Meta types.  Types are themselves a type.  These are really a form of native types, but are required to be included.
 
 Additionally, because the interpreter is for functional languages, types are immutable.  Iterable types cannot have more elements added, and structured types cannot have values changed.
+
+Op codes can allow for extra generic type references.  These allow for single implementations to handle many different user types.
+
+* Iterable - the underlying type may be templatized.
+* Structured key - the related structure may be templatized.
+* Structured key value - the type of a templatized structured key's value.  This requires a reference to the structured key argument.
+    ```
+    <T as structure>
+    get(T structure, KeyOf<T> key) -> StructKeyValue<T:key>
+    ```
+* Meta type - the type referenced by the meta type.
+
+Complex, deep generics are not supported.  Such constructs should be built by combining several simpler forms.
 
 
 ## Script
@@ -102,7 +116,9 @@ Each opcode has an return type that its assigned-to memory index uses.
 
 In a few cases, an opcode may have a *runtime* return type, such as dynamic lookup.  Due to the strong typing system, the memory value that the opcode is assigned to must have a strong type, which forces the interpreter to perform time consuming runtime type checking.
 
-Opcodes can define whether their arguments must be evaluated to a value or not.  An example of a case where they do not is the `map` function - it can return a new list with each value transformed into an invocation of the function passed to the map + the index value.
+Opcodes can define whether their arguments must be evaluated to a value or not.  An example of a case where they do not is the `map` function - it can return a new list with each value transformed into an invocation of the function passed to the map + the index value.  Some arguments might be run-time determined whether they are evaluated or not - for example, an "if-then-else" like statement would only need to evaluate the then or else based on the condition - in which case the argument is passed to the op code using a promise.
+
+Opcodes can also define that they run using a reduction.  In this case, the opcode returns the list to reduce, the reduction operation, and two initial values (one if there's just one item in the list, two if there's no items in the list).
 
 If an opcode takes a structured value or iterable value as an argument, then the definition of that opcode can include the construction of the new value.  This is a built-in feature of the functional interpreter and doesn't need explicit opcodes to create a new fixed-length list or structure.
 

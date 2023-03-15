@@ -1,7 +1,7 @@
 // A single memory indexed entity.
 
 import { RuntimeSourcePosition } from '../../source'
-import { VmType } from '../type-system'
+import { VmGenericId, VmType } from '../type-system'
 
 // VmOpCode A mneumonic for the VM operation to run.
 export type VmOpCode = string
@@ -24,6 +24,11 @@ export interface ConstantRefMemoryCell {
     readonly constant: string
 }
 
+// OpCodeBoundTypes The binding of the opcode's generic ID to the bound type.
+export interface OpCodeBoundTypes {
+    [id: VmGenericId]: VmType
+}
+
 // OpCodeMemoryCellType A single memory cell whose value is evaluated from an opcode.
 export interface OpCodeMemoryCell {
     // source The original script source position defining this cell
@@ -37,6 +42,9 @@ export interface OpCodeMemoryCell {
 
     // arguments The memory cell indicies for each argument for the opcode.
     readonly arguments: VmMemoryIndex[]
+
+    // boundTypes The opcode's generics bound types.
+    readonly boundTypes: OpCodeBoundTypes
 }
 
 // MemoryCellType A single memory cell as defined by the function layout.

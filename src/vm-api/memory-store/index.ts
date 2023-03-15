@@ -4,6 +4,7 @@ export type {
     VmMemoryIndex,
     VmOpCode,
     ConstantRefMemoryCell,
+    OpCodeBoundTypes,
     OpCodeMemoryCell,
     MemoryCell,
 } from './cell'
