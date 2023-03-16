@@ -2,7 +2,7 @@
 
 import { RuntimeError } from '../../src/errors'
 import { RuntimeSourcePosition } from '../../src/source'
-import { LoadTimeSettings, Module, RunTimeSettings, ScriptContext } from '../../src/vm-api/interpreter'
+import { Module, OpCodeFrame, ScriptContext } from '../../src/vm-api/interpreter'
 import { MemoryCell, MemoryValue, OpCodeBoundTypes } from '../../src/vm-api/memory-store'
 import { TypeStore, TypeStoreManager, VmType } from '../../src/vm-api/type-system'
 
@@ -26,37 +26,13 @@ export function generateConstCell(
     }
 }
 
-// generateLoadTimeSettings Create load time settings for an opcode validation call.
-export function generateLoadTimeSettings(settings: {
-    cells: MemoryCell[],
-    returnType: VmType,
-    types: TypeStoreManager,
-    boundTypes?: OpCodeBoundTypes,
-    modules?: {[name: string]: Module},
-}): LoadTimeSettings {
-    return {
-        source: {
-            moduleName: "test",
-            line: cellCount++,
-            column: 1,
-        },
-        context: {
-            modules: settings.modules || {},
-            types: settings.types.getTypeStore(),
-        },
-        args: settings.cells,
-        returnType: settings.returnType,
-        boundTypes: settings.boundTypes || {},
-    }
-}
-
-export function generateRunTimeSettings(settings: {
+export function generateOpCodeFrame(settings: {
     values: MemoryValue[],
     returnType: VmType,
     types: TypeStoreManager,
     boundTypes?: OpCodeBoundTypes,
     modules?: {[name: string]: Module},
-}): RunTimeSettings {
+}): OpCodeFrame {
     return {
         source: {
             moduleName: "test",

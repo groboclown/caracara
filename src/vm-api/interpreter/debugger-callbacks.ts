@@ -1,8 +1,7 @@
 // Callback API into the debugger for points of interest from the interpeter.
 
 import { RuntimeError } from '../../errors'
-import { CallableValue, EvaluatedValue, MemoryCell, VmMemoryIndex } from '../memory-store'
-import { MemoryValue } from './memory'
+import { CallableValue, EvaluatedValue, MemoryCell, MemoryValue, VmMemoryIndex } from '../memory-store'
 
 export interface InterpreterDebuggerCallbacks {
     log(messageId: number, parameters: {[key: string]: number | string | boolean}): void

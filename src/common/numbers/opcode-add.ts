@@ -1,12 +1,12 @@
 // Add numbers together.
 
 import { ValidationProblem } from '../../errors'
-import { isRuntimeError } from '../../errors/struct'
+import { ValidationCollector } from '../helpers/validation'
 import { createCoreSource, RuntimeSourcePosition } from '../../source'
-import { LoadTimeSettings, OpCodeInstruction } from '../../vm-api/interpreter'
-import { EvaluationKind, GeneratedError, GeneratedValue, OpCodeResult, RunTimeSettings } from '../../vm-api/interpreter/instructions'
-import { VmOpCode } from '../../vm-api/memory-store'
-import { extractMemoryValueInteger, extractMemoryValueNumber, INTEGER_TYPE, NUMBER_TYPE } from './type-number'
+import { OpCodeInstruction } from '../../vm-api/interpreter'
+import { EvaluationKind, GeneratedValue, OpCodeResult, OpCodeFrame } from '../../vm-api/interpreter/instructions'
+import { EvaluatedValue, VmOpCode } from '../../vm-api/memory-store'
+import { memoryValueAsInteger, validateMemoryValueNumber, INTEGER_TYPE, NUMBER_TYPE, validateMemoryValueInteger, memoryValueAsNumber } from './type-number'
 
 // OPCODE__ADD_NUMBERS opcode for this operation.
 export const OPCODE__ADD_NUMBERS: VmOpCode = 'nadd'
@@ -17,12 +17,12 @@ export class OpCodeAddNumbers implements OpCodeInstruction {
     readonly opcode = OPCODE__ADD_NUMBERS
     readonly argumentTypes = [
         {
-            name: "first",
+            name: 'first',
             type: NUMBER_TYPE,
             evaluation: EvaluationKind.evaluated,
         },
         {
-            name: "second",
+            name: 'second',
             type: NUMBER_TYPE,
             evaluation: EvaluationKind.evaluated,
         },
@@ -34,23 +34,30 @@ export class OpCodeAddNumbers implements OpCodeInstruction {
         this.source = createCoreSource('core.numbers.add')
     }
 
-    validate(): ValidationProblem[] {
-        // No additional checks necessary beyond the arugment count and type checks.
-        return []
+    staticValidation(settings: OpCodeFrame): ValidationProblem[] {
+        return new ValidationCollector()
+            .add(validateMemoryValueNumber(settings, 0, false))
+            .add(validateMemoryValueNumber(settings, 1, false))
+            .validations
     }
 
-    evaluate(settings: RunTimeSettings): OpCodeResult {
-        const arg0 = extractMemoryValueNumber(settings, 0)
-        if (isRuntimeError(arg0)) {
-            return { error: arg0 } as GeneratedError
-        }
-        const arg1 = extractMemoryValueNumber(settings, 1)
-        if (isRuntimeError(arg1)) {
-            return { error: arg1 } as GeneratedError
-        }
+    runtimeValidation(settings: OpCodeFrame): ValidationProblem[] {
+        return new ValidationCollector()
+            .add(validateMemoryValueNumber(settings, 0, true))
+            .add(validateMemoryValueNumber(settings, 1, true))
+            .validations
+    }
+
+    evaluate(settings: OpCodeFrame): OpCodeResult {
+        const arg0 = memoryValueAsNumber(settings.args[0])
+        const arg1 = memoryValueAsNumber(settings.args[1])
         return {
             value: arg0 + arg1
         } as GeneratedValue
+    }
+
+    returnValidation(_settings: OpCodeFrame, _value: EvaluatedValue): ValidationProblem[] {
+        return []
     }
 }
 
@@ -63,12 +70,12 @@ export class OpCodeAddIntegers implements OpCodeInstruction {
     readonly opcode = OPCODE__ADD_INTEGERS
     readonly argumentTypes = [
         {
-            name: "first",
+            name: 'first',
             type: INTEGER_TYPE,
             evaluation: EvaluationKind.evaluated,
         },
         {
-            name: "second",
+            name: 'second',
             type: INTEGER_TYPE,
             evaluation: EvaluationKind.evaluated,
         },
@@ -80,22 +87,30 @@ export class OpCodeAddIntegers implements OpCodeInstruction {
         this.source = createCoreSource('core.integers.add')
     }
 
-    validate(_settings: LoadTimeSettings): ValidationProblem[] {
-        // No additional checks necessary beyond the arugment count and type checks.
-        return []
+
+    staticValidation(settings: OpCodeFrame): ValidationProblem[] {
+        return new ValidationCollector()
+            .add(validateMemoryValueInteger(settings, 0, false))
+            .add(validateMemoryValueInteger(settings, 1, false))
+            .validations
     }
 
-    evaluate(settings: RunTimeSettings): OpCodeResult {
-        const arg0 = extractMemoryValueInteger(settings, 0)
-        if (isRuntimeError(arg0)) {
-            return { error: arg0 } as GeneratedError
-        }
-        const arg1 = extractMemoryValueInteger(settings, 1)
-        if (isRuntimeError(arg1)) {
-            return { error: arg1 } as GeneratedError
-        }
+    runtimeValidation(settings: OpCodeFrame): ValidationProblem[] {
+        return new ValidationCollector()
+            .add(validateMemoryValueInteger(settings, 0, true))
+            .add(validateMemoryValueInteger(settings, 1, true))
+            .validations
+    }
+
+    evaluate(settings: OpCodeFrame): OpCodeResult {
+        const arg0 = memoryValueAsInteger(settings.args[0])
+        const arg1 = memoryValueAsInteger(settings.args[1])
         return {
             value: arg0 + arg1
         } as GeneratedValue
+    }
+
+    returnValidation(_settings: OpCodeFrame, _value: EvaluatedValue): ValidationProblem[] {
+        return []
     }
 }

@@ -7,13 +7,13 @@ import { MemoryCell, VmMemoryIndex } from './cell'
 //  This does not allow returning "null".  Should it?
 export type NativeValue = object | number | string
 
-type IterableVisitor = (value: EvaluatedValue) => void
+// IterableValueVisitor visits each element in the value until the list ends or true is returned.
+//   This visits the memory value, to allow for possibly lazy loaded values.
+type IterableVisitor = (value: MemoryValue) => boolean
 
 // IterableValue The value stored in VmIterableType cells.
-//   In order for an iterable value to be evaluated, all its
-//   items must be evaluated.  This is a non-lazy approach.
-//   This may change in the future.
 export interface IterableValue {
+    // forEach Pass each item in the iterable into the callback until the end of the list or true is returned.
     forEach(callback: IterableVisitor): void
     // reduce? map? size?
 }

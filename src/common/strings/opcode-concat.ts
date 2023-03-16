@@ -1,12 +1,12 @@
 // Concatenate two strings together.
 
-import { ValidationProblem } from '../../errors'
-import { isRuntimeError } from '../../errors/struct'
+import { ERROR__IMPL_RETURN_VALUE_TYPE, ValidationProblem } from '../../errors'
+import { ValidationCollector } from '../helpers/validation'
 import { createCoreSource, RuntimeSourcePosition } from '../../source'
-import { OpCodeInstruction, ScriptContext } from '../../vm-api/interpreter'
-import { EvaluationKind, GeneratedError, GeneratedValue, OpCodeResult } from '../../vm-api/interpreter/instructions'
-import { MemoryValue, VmOpCode } from '../../vm-api/memory-store'
-import { extractMemoryValueString, STRING_TYPE } from './type-string'
+import { OpCodeInstruction } from '../../vm-api/interpreter'
+import { EvaluationKind, GeneratedValue, OpCodeFrame, OpCodeResult } from '../../vm-api/interpreter/instructions'
+import { EvaluatedValue, VmOpCode } from '../../vm-api/memory-store'
+import { validateMemoryValueString, memoryValueAsString, STRING_TYPE, isEvaluatedString } from './type-string'
 
 // OPCODE__ADD_NUMBERS opcode for this operation.
 export const OPCODE__CONCAT_STRINGS: VmOpCode = 'concat'
@@ -17,12 +17,12 @@ export class OpCodeConcatStrings implements OpCodeInstruction {
     readonly opcode = OPCODE__CONCAT_STRINGS
     readonly argumentTypes = [
         {
-            name: "first",
+            name: 'first',
             type: STRING_TYPE,
             evaluation: EvaluationKind.evaluated,
         },
         {
-            name: "second",
+            name: 'second',
             type: STRING_TYPE,
             evaluation: EvaluationKind.evaluated,
         },
@@ -34,23 +34,41 @@ export class OpCodeConcatStrings implements OpCodeInstruction {
         this.source = createCoreSource('core.strings.concat')
     }
 
-    validate(): ValidationProblem[] {
-        // No additional checks necessary beyond the arugment count and type checks.
+    staticValidation(settings: OpCodeFrame): ValidationProblem[] {
+        // Can perform checks on constant values.
+        return new ValidationCollector()
+            // At static time, the memory value does not need to exist.
+            .add(validateMemoryValueString(settings, 0, false))
+            .add(validateMemoryValueString(settings, 1, false))
+            .validations
+    }
+
+    runtimeValidation(settings: OpCodeFrame): ValidationProblem[] {
+        return new ValidationCollector()
+            .add(validateMemoryValueString(settings, 0, true))
+            .add(validateMemoryValueString(settings, 1, true))
+            .validations
+    }
+
+    returnValidation(settings: OpCodeFrame, value: EvaluatedValue): ValidationProblem[] {
+        if (!isEvaluatedString(value)) {
+            return [
+                {
+                    source: settings.source,
+                    problemId: ERROR__IMPL_RETURN_VALUE_TYPE,
+                    parameters: {
+                        expected: STRING_TYPE.internalType,
+                        found: String(value),
+                    }
+                } as ValidationProblem
+            ]
+        }
         return []
     }
 
-    evaluate(
-        source: RuntimeSourcePosition,
-        _context: ScriptContext, args: MemoryValue[],
-    ): OpCodeResult {
-        const arg0 = extractMemoryValueString(source, 0, args[0])
-        if (isRuntimeError(arg0)) {
-            return { error: arg0 } as GeneratedError
-        }
-        const arg1 = extractMemoryValueString(source, 1, args[1])
-        if (isRuntimeError(arg1)) {
-            return { error: arg1 } as GeneratedError
-        }
+    evaluate(settings: OpCodeFrame): OpCodeResult {
+        const arg0 = memoryValueAsString(settings.args[0])
+        const arg1 = memoryValueAsString(settings.args[1])
         return {
             value: arg0 + arg1
         } as GeneratedValue

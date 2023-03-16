@@ -87,7 +87,9 @@ interface VmTypedIterable {
     // terminates True if this iterable guarantees an eventual end of elements.
     //   Some iterables marked as not terminating may have an implicit ending if some error condition
     //   occurs.  In those scenarios, it must have a marker value returned.
-    readonly terminates: boolean
+    //   This can be undefined for opcodes and functions if the termination state
+    //   doesn't matter.
+    readonly terminates: boolean | undefined
 }
 
 // VmIterableType a VM collection of fixed length items

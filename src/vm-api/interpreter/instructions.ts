@@ -1,8 +1,9 @@
 // API for an Embedding System to define its own opcodes.
 
 import { RuntimeError, ValidationProblem } from '../../errors'
+import { isRuntimeError } from '../../errors/struct'
 import { RuntimeSourcePosition } from '../../source'
-import { EvaluatedValue, MemoryCell, MemoryValue, OpCodeBoundTypes, VmOpCode } from '../memory-store'
+import { EvaluatedValue, MemoryValue, OpCodeBoundTypes, VmOpCode } from '../memory-store'
 import { VmType, VmGenericBindHint, VmGenericId, VmGenericRef } from '../type-system'
 import { StructuredKeyType } from '../type-system/categories'
 import { ScriptContext } from './loaded-script'
@@ -15,6 +16,11 @@ export interface GeneratedError {
 // GeneratedValue The opcode execution generated an evaluated value.
 export interface GeneratedValue {
     value: EvaluatedValue
+}
+
+// LazyValue The opcode execution returned a lazy value.
+export interface LazyValue {
+    lazy: MemoryValue
 }
 
 // ReducedrValue The opcode returns a script function or opcode
@@ -41,6 +47,10 @@ export interface OpCodeReducerValue {
     //   then the context MUST be set and MUST be of the opcode's third
     //   argument type.
     context?: MemoryValue
+
+    // iterable The values to run the reducer over.
+    //   This must be a memory cell of iterable type.
+    iterable: MemoryValue
 
     // initialValue The value passed to the opcode if there are not enough values to perform a reduction.
     //   If the iterator only contains zero or one element, this is passed as the first, and
@@ -115,7 +125,12 @@ export interface OpCodeArgument {
 }
 
 // OpCodeResult The return value type for an opcode.
-export type OpCodeResult = GeneratedError | GeneratedValue | ReducerValue
+export type OpCodeResult = GeneratedError | GeneratedValue | ReducerValue | LazyValue
+
+// isGeneratedError Type checker
+export function isGeneratedError(value: OpCodeResult): value is GeneratedError {
+    return typeof value === 'object' && isRuntimeError((<GeneratedError>value).error)
+}
 
 // OpCodeGenericBinding Details how to bind a type to a generic reference
 export interface OpCodeGenericBinding {
@@ -136,21 +151,19 @@ export interface OpCodeGenericBinding {
     keyedTypeArgumentIndex?: number
 }
 
-// LoadTimeSettings Specific instantiation of an opcode at load time.
-export interface LoadTimeSettings {
+// OpCodeFrame Specific instantiation of an opcode at load time or runtime.
+//   At load time, the memory value args will only have a value if the source is constant.
+//   At run time, an argument must have a value if the argument is marked as evaluated, and might
+//     have a value if not forced to be evaluated.
+export interface OpCodeFrame {
     source: RuntimeSourcePosition
     context: ScriptContext
-    args: MemoryCell[]
-    // returnType The value type of the memory cell the evaluated answer will be associated with.
-    returnType: VmType
-    boundTypes: OpCodeBoundTypes
-}
 
-// RunTimeSettings Specific instantiation of an opcode at load time.
-export interface RunTimeSettings {
-    source: RuntimeSourcePosition
-    context: ScriptContext
+    // args The ordered arguments for the opcode
+    //   The value will be set if it's a constant, otherwise it is only guaranteed to have
+    //     a value if it's run time and the argument is not "lazy" evaluated.
     args: MemoryValue[]
+
     // returnType The value type of the memory cell the evaluated answer will be associated with.
     returnType: VmType
     boundTypes: OpCodeBoundTypes
@@ -177,13 +190,25 @@ export interface OpCodeInstruction {
     // returnType The exected return type from the opcode.
     readonly returnType: VmType | VmGenericRef
 
-    // validate Called at script load time to determine whether the arguments are valid.
+    // staticValidation Called at script load time to determine whether the arguments are valid.
     //   Standard type checking and value count is done automatically, so that isn't necessary.
-    validate(settings: LoadTimeSettings): ValidationProblem[]
+    staticValidation(settings: OpCodeFrame): ValidationProblem[]
+
+    // runtimeValidation Ensures the run time settings are valid for this opcode.
+    //   This includes full inspection of the settings to ensure that, when evaluation is
+    //   called, the settings will be in the right state.  The implementation should
+    //   assume that the settings are passed as-is to the evaluation call.
+    //   Separating these two calls allows for evaluation to be very quick, so that
+    //   eventual optimizations could skip the runtime validation.
+    runtimeValidation(settings: OpCodeFrame): ValidationProblem[]
 
     // evaluate Performs the value evaluation based on the arguments.
-    //   The caller must verify that the argument values conform to the requirements
-    //   in the argumentTypes list.  The evaluate implementation should assume
-    //   that these are correct.
-    evaluate(settings: RunTimeSettings): OpCodeResult
+    //   Called when the run time settings are validated as correct.  As such, it
+    //   can make assumptions about the values in order to make this call fast.
+    evaluate(settings: OpCodeFrame): OpCodeResult
+
+    // returnValidation Post-evaluation checking of the returned value.
+    //   Optionally called in order to perform strict checking.
+    //   Only called if the evaluate returns a GeneratedValue.
+    returnValidation(settings: OpCodeFrame, value: EvaluatedValue): ValidationProblem[]
 }

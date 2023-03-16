@@ -21,3 +21,10 @@ const ERROR__USER_RUNTIME                   = 0x10000 | USER_ERROR
 export const ERROR__USER__MODULE_NOT_FOUND  = 1 | ERROR__USER_RUNTIME
 export const ERROR__USER__CONST_NOT_FOUND   = 2 | ERROR__USER_RUNTIME
 export const ERROR__USER__TYPE_MISMATCH     = 3 | ERROR__USER_RUNTIME
+export const ERROR__USER__UNKOWN_TYPE       = 4 | ERROR__USER_RUNTIME
+
+
+const IMPL_ERROR                            = 0x300000
+
+const ERROR__IMPL_RUNTIME                   = 0x10000 | IMPL_ERROR
+export const ERROR__IMPL_RETURN_VALUE_TYPE  = 1 | ERROR__IMPL_RUNTIME

@@ -3,7 +3,7 @@
 import { INTEGER_TYPE, OpCodeAddIntegers } from '../../../src/common/numbers'
 import { GeneratedValue } from '../../../src/vm-api/interpreter'
 import { MemoryCell, MemoryValue } from '../../../src/vm-api/memory-store'
-import { generateConstCell, generateLoadTimeSettings, generateRunTimeSettings, MockTypeStoreManager } from '../../helpers/opcode-runner'
+import { generateConstCell, generateOpCodeFrame, MockTypeStoreManager } from '../../helpers/opcode-runner'
 
 describe("With two integers", () => {
     const cells: MemoryCell[] = [
@@ -24,9 +24,18 @@ describe("With two integers", () => {
     const types = new MockTypeStoreManager()
     describe("When added together", () => {
         const opcode = new OpCodeAddIntegers()
-        it("validate", () => {
-            const res = opcode.validate(generateLoadTimeSettings({
-                cells: [cells[0], cells[1]],
+        it("static validate", () => {
+            const res = opcode.staticValidation(generateOpCodeFrame({
+                values: [memory[0], memory[1]],
+                returnType: INTEGER_TYPE,
+                types,
+            }))
+            expect(res).toStrictEqual([])
+        })
+
+        it("runtime validate", () => {
+            const res = opcode.runtimeValidation(generateOpCodeFrame({
+                values: [memory[0], memory[1]],
                 returnType: INTEGER_TYPE,
                 types,
             }))
@@ -34,7 +43,7 @@ describe("With two integers", () => {
         })
 
         it("add up", () => {
-            const res = opcode.evaluate(generateRunTimeSettings({
+            const res = opcode.evaluate(generateOpCodeFrame({
                 values: [memory[0], memory[1]],
                 returnType: INTEGER_TYPE,
                 types,
