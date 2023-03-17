@@ -20,7 +20,6 @@ export interface TypeStore {
     enforceTypeMatch(requestor: RuntimeSourcePosition, actual: VmType, expected: VmType): RuntimeError | null
 }
 
-
 // TypeStoreManager manages the construction of the type store.
 export interface TypeStoreManager {
     // getTypeStore retrieve a read-only view of the type store.

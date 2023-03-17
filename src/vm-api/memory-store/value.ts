@@ -1,4 +1,5 @@
 // A value in a cell in a runtime environment.
+//   These represent the implementing system view of the interpreter state.
 
 import { RuntimeSourcePosition } from '../../source'
 import { MemoryCell, VmMemoryIndex } from './cell'
@@ -47,16 +48,22 @@ export interface StructuredValue {
     readonly store: { [key: string]: EvaluatedValue }
 }
 
+export const CALLABLE_RETURN_MEMORY_INDEX: VmMemoryIndex = 0
+
 // CallableValue The value stored in VmCallableType cells.
 //     Additionally, this is the function memory layout constructed
 //     by the loader.
 export interface CallableValue {
+    // source Where the callable came from.
+    //   This relates to the name of the callable.
     readonly source: RuntimeSourcePosition
-    // getMemoryCells Get all the memory cells.
-    getMemoryCells(): { [index: VmMemoryIndex]: MemoryCell }
 
-    // getMemoryCellAt Get the cell with the given index.
-    getMemoryCellAt(index: VmMemoryIndex): MemoryCell | undefined
+    // cells: The layout of the callable function.
+    //   The cells MUST contain the CALLABLE_RETURN_MEMORY_INDEX index,
+    //   as that is the final return of this callable.  When the
+    //   callable value is used in a CallingMemoryCell, the return
+    //   cell type must align with the CallingMemoryCell type.
+    readonly cells: {[index: VmMemoryIndex]: MemoryCell}
 }
 
 // EvaluatedValue The value stored in a memory cell after it has been evaluated.

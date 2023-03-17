@@ -49,13 +49,15 @@ export interface OpCodeMemoryCell {
     readonly boundTypes: OpCodeBoundTypes
 }
 
-// FunctionMemoryCell A single memory cell whose value is evaluated by a call to a callable.
-export interface FunctionMemoryCell {
+// CallingMemoryCell A single memory cell whose value is evaluated by a call to a callable.
+//   Indicies must line up with the referenced CallableValue.
+export interface CallingMemoryCell {
     // source The original script source position defining this cell
     readonly source: RuntimeSourcePosition
 
     // type The explicit type value of the memory cell
-    //   This must match the return type of the callable function.
+    //   This must match the return type of the callable function
+    //   (memory cell with index CALLABLE_RETURN_MEMORY_INDEX).
     readonly type: VmType
 
     // callable The callable function to invoke.
@@ -71,4 +73,4 @@ export interface FunctionMemoryCell {
 }
 
 // MemoryCellType A single memory cell as defined by the function layout.
-export type MemoryCell = ConstantRefMemoryCell | OpCodeMemoryCell | FunctionMemoryCell
+export type MemoryCell = ConstantRefMemoryCell | OpCodeMemoryCell | CallingMemoryCell

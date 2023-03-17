@@ -10,6 +10,7 @@ export interface ScriptLoaderFactory {
     // createScriptLoader Create a script loader that uses an embedding system's context.
     createScriptLoader(
         opcodes: OpCodeInstruction[],
+        // TODO should this also take a list of native types?
     ): ValidationResult<ScriptLoader>
 }
 
@@ -19,5 +20,7 @@ export interface ScriptLoader {
     //   This also validates the integrity of the script, which can generate validation problems.
     parseScript(
         context: ScriptContext,
+        // TODO this should instead take a module loader callback that accepts a
+        //   factory to create memory values, and to register modules.
     ): ValidationResult<Interpreter>
 }

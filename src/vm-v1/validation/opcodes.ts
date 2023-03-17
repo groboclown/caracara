@@ -96,6 +96,12 @@ function validateGenericArg(
     bindings: {[id: string]: OpCodeGenericBinding},
     problems: ValidationCollector,
 ) {
+    // This doesn't perform recursive checking on the argument type
+    //   to see if it's generic.  Only top-level types are allowed to be
+    //   generic + top-level iterable value types.  That, however, is
+    //   checked with type checking.  The scope of this check is to see
+    //   whether the opcode type aligns with the declarations.
+
     const type = arg.type
     if (isVmGenericRef(type)) {
         validateGenericRefArg(opcode, index, arg, bindings, type, problems)
@@ -265,6 +271,7 @@ function validateNotGeneric(
     }
 }
 
+// isRuntimeType Checks if the type is the same native type as a runtime type.
 function isRuntimeType(type: VmType): boolean {
     return (
         isVmNativeType(type)
@@ -272,6 +279,7 @@ function isRuntimeType(type: VmType): boolean {
     )
 }
 
+// createBindingProblem Create a generic binding problem
 function createBindingProblem(
     problemId: number, opcode: OpCodeInstruction, binding: OpCodeGenericBinding,
 ): ValidationProblem {
@@ -285,6 +293,7 @@ function createBindingProblem(
     } as ValidationProblem
 }
 
+// createArgumentProblem Create an argument type problem
 function createArgumentProblem(
     problemId: number,
     opcode: OpCodeInstruction,
@@ -303,6 +312,7 @@ function createArgumentProblem(
     } as ValidationProblem
 }
 
+// createReturnProblem Create a return type problem
 function createReturnProblem(
     problemId: number,
     opcode: OpCodeInstruction,
@@ -317,6 +327,7 @@ function createReturnProblem(
     } as ValidationProblem
 }
 
+// createUnboundProblem Create a unbound generic problem
 function createUnboundProblem(
     opcode: OpCodeInstruction,
     parameters: { [key: string]: string | number },
