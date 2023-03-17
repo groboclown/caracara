@@ -2,8 +2,8 @@
 
 import { ERROR__USER__CONST_NOT_FOUND, ERROR__USER__MODULE_NOT_FOUND, RuntimeError, ValidationProblem } from '../../errors'
 import { createCoreSource, RuntimeSourcePosition } from '../../source'
-import { GeneratedError, GeneratedValue, OpCodeInstruction, OpCodeResult, EvaluationKind, OpCodeFrame, ScriptContext, Module } from '../../vm-api/interpreter'
-import { EvaluatedValue, VmOpCode } from '../../vm-api/memory-store'
+import { OpCodeInstruction, EvaluationKind, OpCodeFrame, ScriptContext, Module } from '../../vm-api/interpreter'
+import { EvaluatedValue, GeneratedError, GeneratedValue, OpCodeResult, VmOpCode } from '../../vm-api/memory-store'
 import { RUNTIME_TYPE, VmType } from '../../vm-api/type-system'
 import { validateMemoryValueString, memoryValueAsString, STRING_TYPE } from '../strings'
 

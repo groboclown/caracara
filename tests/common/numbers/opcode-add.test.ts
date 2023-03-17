@@ -1,53 +1,36 @@
 // Tests for the add opcodes.
 
-import { INTEGER_TYPE, OpCodeAddIntegers } from '../../../src/common/numbers'
-import { GeneratedValue } from '../../../src/vm-api/interpreter'
-import { MemoryCell, MemoryValue } from '../../../src/vm-api/memory-store'
-import { generateConstCell, generateOpCodeFrame, MockTypeStoreManager } from '../../helpers/opcode-runner'
+import { INTEGER_TYPE, OpCodeAddIntegers, createEvaluatedInteger } from '../../../src/common/numbers'
+import { GeneratedValue } from '../../../src/vm-api/memory-store'
+import { MockScriptContext } from '../../helpers'
 
 describe("With two integers", () => {
-    const cells: MemoryCell[] = [
-        generateConstCell(INTEGER_TYPE, "i1"),
-        generateConstCell(INTEGER_TYPE, "i2"),
-        generateConstCell(INTEGER_TYPE, "r0"),
-    ]
-    const memory: MemoryValue[] = [
-        {
-            cell: cells[0],
-            value: 13,
-        },
-        {
-            cell: cells[1],
-            value: 32,
-        },
-    ]
-    const types = new MockTypeStoreManager()
+    const context = new MockScriptContext()
+    context.typeManager.addType(INTEGER_TYPE)
+    const constMem = context.createModule("mem")
+    const i1 = constMem.addConstant("i1", INTEGER_TYPE, createEvaluatedInteger(13))
+    const i2 = constMem.addConstant("i2", INTEGER_TYPE, createEvaluatedInteger(32))
+
     describe("When added together", () => {
         const opcode = new OpCodeAddIntegers()
         it("static validate", () => {
-            const res = opcode.staticValidation(generateOpCodeFrame({
-                values: [memory[0], memory[1]],
-                returnType: INTEGER_TYPE,
-                types,
-            }))
+            const res = opcode.staticValidation(context.createOpCodeFrame(
+                [i1, i2], INTEGER_TYPE,
+            ))
             expect(res).toStrictEqual([])
         })
 
         it("runtime validate", () => {
-            const res = opcode.runtimeValidation(generateOpCodeFrame({
-                values: [memory[0], memory[1]],
-                returnType: INTEGER_TYPE,
-                types,
-            }))
+            const res = opcode.runtimeValidation(context.createOpCodeFrame(
+                [i1, i2], INTEGER_TYPE,
+            ))
             expect(res).toStrictEqual([])
         })
 
         it("add up", () => {
-            const res = opcode.evaluate(generateOpCodeFrame({
-                values: [memory[0], memory[1]],
-                returnType: INTEGER_TYPE,
-                types,
-            }))
+            const res = opcode.evaluate(context.createOpCodeFrame(
+                [i1, i2], INTEGER_TYPE,
+            ))
             expect((<GeneratedValue>res).value).toBe(13 + 32)
         })
     })

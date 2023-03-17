@@ -2,15 +2,13 @@
 
 import { ValidationProblem, VALIDATION_OPCODE_ARGUMENT_VALUE } from '../../errors'
 import { ValidationCollector } from '../helpers/validation'
-import { GENERIC_T_TYPE, GENERIC_TERM_ITERABLE_T_TYPE } from '../helpers/type-generic'
+import { GENERIC_T_TYPE, GENERIC_ITERABLE_T_TYPE } from '../helpers/type-generic'
 import { INTEGER_TYPE } from '../numbers'
 import { createCoreSource, RuntimeSourcePosition } from '../../source'
-import { OpCodeFrame, OpCodeInstruction, OpCodeResult } from '../../vm-api/interpreter'
-import { EvaluationKind, GeneratedValue } from '../../vm-api/interpreter/instructions'
-import { EvaluatedValue, IterableValue, MemoryValue, VmOpCode } from '../../vm-api/memory-store'
+import { OpCodeFrame, OpCodeInstruction, EvaluationKind } from '../../vm-api/interpreter'
+import { EvaluatedValue, IterableValue, MemoryFactory, MemoryValue, OpCodeResult, VmOpCode } from '../../vm-api/memory-store'
 import { VmGenericBindHint } from '../../vm-api/type-system'
 import { isEvaluatedInteger, memoryValueAsInteger, validateMemoryValueInteger } from '../numbers/type-number'
-import { createFixedIterable } from '../helpers/type-iterable'
 
 // OPCODE__SLICE Mneumonic for the instruction.
 export const OPCODE__SLICE: VmOpCode = 'slice'
@@ -24,7 +22,7 @@ export class SliceIterableOpCode implements OpCodeInstruction {
     argumentTypes = [
         {
             name: 'iterable',
-            type: GENERIC_TERM_ITERABLE_T_TYPE,
+            type: GENERIC_ITERABLE_T_TYPE,
             evaluation: EvaluationKind.shallow_evaluation,
         },
         {
@@ -98,39 +96,23 @@ export class SliceIterableOpCode implements OpCodeInstruction {
         return probs
     }
 
-    evaluate(settings: OpCodeFrame): OpCodeResult {
+    evaluate(settings: OpCodeFrame, factory: MemoryFactory): OpCodeResult {
         const list = settings.args[0].value as IterableValue
         const start = memoryValueAsInteger(settings.args[1])
         const end = memoryValueAsInteger(settings.args[2])
         if (start == end) {
-            // Nothing to do.
-            return { value: createFixedIterable([]) } as GeneratedValue
+            // Nothing to do.  Optimization.
+            return factory.iterable.createFromValueArray([], settings.returnType)
         }
         const loaded: MemoryValue[] = []
-        const index: number[] = [0]
-        if (end > start) {
-            list.forEach((v) => {
-                if (index[0] >= start) {
-                    loaded.push(v)
-                }
-                index[0]++
-                return index[0] >= end
-            })
-            return { value: createFixedIterable(loaded) } as GeneratedValue
-        }
-
-        // else assume end < 0
         list.forEach((v) => {
-            if (index[0] >= start) {
-                loaded.push(v)
-            }
-            index[0]++
+            loaded.push(v)
             return false
+         }, {
+            startIndex: start,
+            endIndex: end,
         })
-        const count = Math.min(loaded.length + end, loaded.length)
-        return {
-            value: createFixedIterable(loaded.slice(0, count))
-        } as GeneratedValue
+        return factory.iterable.createFromMemoryArray(loaded, settings.returnType)
     }
 
     returnValidation(_settings: OpCodeFrame, _value: EvaluatedValue): ValidationProblem[] {

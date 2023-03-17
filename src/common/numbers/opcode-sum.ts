@@ -3,9 +3,9 @@
 import { ValidationProblem } from '../../errors'
 import { createCoreSource, RuntimeSourcePosition } from '../../source'
 import { OpCodeInstruction } from '../../vm-api/interpreter'
-import { EvaluationKind, OpCodeResult, OpCodeFrame, ReducerValue } from '../../vm-api/interpreter/instructions'
-import { EvaluatedValue, VmOpCode } from '../../vm-api/memory-store'
-import { INTEGER_TYPE, NUMBER_TYPE, FINITE_INTEGER_ITERABLE_TYPE, FINITE_NUMBER_ITERABLE_TYPE } from './type-number'
+import { EvaluationKind, OpCodeFrame } from '../../vm-api/interpreter/instructions'
+import { EvaluatedValue, OpCodeResult, ReducerValue, VmOpCode } from '../../vm-api/memory-store'
+import { INTEGER_TYPE, NUMBER_TYPE, INTEGER_ITERABLE_TYPE, NUMBER_ITERABLE_TYPE } from './type-number'
 import { OPCODE__ADD_INTEGERS, OPCODE__ADD_NUMBERS } from './opcode-add'
 
 // OPCODE__SUM_NUMBERS opcode for this operation.
@@ -18,7 +18,7 @@ export class OpCodeSumNumbers implements OpCodeInstruction {
     readonly argumentTypes = [
         {
             name: 'items',
-            type: FINITE_NUMBER_ITERABLE_TYPE,
+            type: NUMBER_ITERABLE_TYPE,
             evaluation: EvaluationKind.lazy,
         },
         {
@@ -67,7 +67,7 @@ export class OpCodeSumIntegers implements OpCodeInstruction {
     readonly argumentTypes = [
         {
             name: 'items',
-            type: FINITE_INTEGER_ITERABLE_TYPE,
+            type: INTEGER_ITERABLE_TYPE,
             evaluation: EvaluationKind.lazy,
         },
         {

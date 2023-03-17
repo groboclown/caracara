@@ -3,13 +3,16 @@
 import { ValidationProblem, VM_BUG_NON_EVALUATED_VALUE, VM_MEMORY_TYPE_CONFUSION } from '../../errors'
 import { createCoreSource } from '../../source'
 import { OpCodeFrame } from '../../vm-api/interpreter'
-import { EvaluatedValue, MemoryCell, MemoryValue, VmMemoryIndex } from '../../vm-api/memory-store'
+import { EvaluatedValue, MemoryCell, MemoryValue, NativeValue, VmMemoryIndex } from '../../vm-api/memory-store'
 import { isVmNativeType, VmNativeType } from '../../vm-api/type-system'
 
 export const STRING_TYPE: VmNativeType = {
     source: createCoreSource('types.string'),
     name: 'str',
     internalType: 'string',
+    isType: (value: NativeValue): boolean => {
+        return isEvaluatedString(value)
+    },
 }
 
 // createEvaluatedString Create an evaluated value that is of STRING_TYPE.

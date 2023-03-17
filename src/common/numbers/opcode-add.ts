@@ -4,8 +4,8 @@ import { ValidationProblem } from '../../errors'
 import { ValidationCollector } from '../helpers/validation'
 import { createCoreSource, RuntimeSourcePosition } from '../../source'
 import { OpCodeInstruction } from '../../vm-api/interpreter'
-import { EvaluationKind, GeneratedValue, OpCodeResult, OpCodeFrame } from '../../vm-api/interpreter/instructions'
-import { EvaluatedValue, VmOpCode } from '../../vm-api/memory-store'
+import { EvaluationKind, OpCodeFrame } from '../../vm-api/interpreter/instructions'
+import { EvaluatedValue, GeneratedValue, OpCodeResult, VmOpCode } from '../../vm-api/memory-store'
 import { memoryValueAsInteger, validateMemoryValueNumber, INTEGER_TYPE, NUMBER_TYPE, validateMemoryValueInteger, memoryValueAsNumber } from './type-number'
 
 // OPCODE__ADD_NUMBERS opcode for this operation.

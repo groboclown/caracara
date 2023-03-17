@@ -3,20 +3,22 @@
 import { ValidationProblem, VM_BUG_NON_EVALUATED_VALUE, VM_MEMORY_TYPE_CONFUSION } from '../../errors'
 import { createCoreSource } from '../../source'
 import { OpCodeFrame } from '../../vm-api/interpreter'
-import { EvaluatedValue, MemoryCell, MemoryValue, VmMemoryIndex } from '../../vm-api/memory-store'
+import { EvaluatedValue, MemoryCell, MemoryValue, NativeValue, VmMemoryIndex } from '../../vm-api/memory-store'
 import { isVmNativeType, VmIterableType, VmNativeType } from '../../vm-api/type-system'
 
 export const INTEGER_TYPE: VmNativeType = {
     source: createCoreSource('types.integer'),
     name: 'int',
     internalType: 'integer',
+    isType: (value: NativeValue): boolean => {
+        return isEvaluatedInteger(value)
+    },
 }
 
-export const FINITE_INTEGER_ITERABLE_TYPE: VmIterableType = {
+export const INTEGER_ITERABLE_TYPE: VmIterableType = {
     source: createCoreSource('types.integer'),
     name: 'list(int)',
     valueType: INTEGER_TYPE,
-    terminates: true,
 }
 
 // createEvaluatedInteger Create an evaluated value that is of INTEGER_TYPE.
@@ -86,13 +88,15 @@ export const NUMBER_TYPE: VmNativeType = {
     source: createCoreSource('types.number'),
     name: 'number',
     internalType: 'number',
+    isType: (value: NativeValue): boolean => {
+        return isEvaluatedNumber(value)
+    },
 }
 
-export const FINITE_NUMBER_ITERABLE_TYPE: VmIterableType = {
+export const NUMBER_ITERABLE_TYPE: VmIterableType = {
     source: createCoreSource('types.number'),
     name: 'list(number)',
     valueType: NUMBER_TYPE,
-    terminates: true,
 }
 
 // createEvaluatedNumber Create an evaluated value that is of NUMBER_TYPE.

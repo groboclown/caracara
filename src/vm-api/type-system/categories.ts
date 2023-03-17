@@ -14,8 +14,18 @@ export interface VmType {
 }
 
 // VmTypedNative References a built-in types.
+//   Because native types are owned by the implementing system,
+//   they must support an explicit value-is-a check.
 interface VmTypedNative {
+    // internalType Underlying unique name for this native type.
+    //   Type aliasing can cause the name to be something else, but
+    //   the internal types must be equal to refer to the same native type.
     readonly internalType: string
+
+    // isType Is the evaluated native value this kind of native?
+    //   Note that, due to ordering, this doesn't reference NativeValue,
+    //   but the type of the argument here must align with the NativeValue.
+    isType(value: object | number | string | boolean): boolean
 }
 
 // VmNativeType A VM simple type.
@@ -80,16 +90,10 @@ export function isVmStructuredType(val: VmType): val is VmStructuredType {
 }
 
 // VmTypedIterable an interable (non-indexable) value store.
-//   May have generic value types.
+//   May have generic value types.  All iterables are guaranteed to terminate.
 interface VmTypedIterable {
     // valueType The type of each element in the iterable.
     readonly valueType: VmType | VmGenericRef
-    // terminates True if this iterable guarantees an eventual end of elements.
-    //   Some iterables marked as not terminating may have an implicit ending if some error condition
-    //   occurs.  In those scenarios, it must have a marker value returned.
-    //   This can be undefined for opcodes and functions if the termination state
-    //   doesn't matter.
-    readonly terminates: boolean | undefined
 }
 
 // VmIterableType a VM collection of fixed length items

@@ -2,7 +2,7 @@
 
 import { RuntimeError, ValidationProblem } from '../../errors'
 import { isRuntimeError } from '../../errors/struct'
-import { GeneratedError, GeneratedValue } from '../../vm-api/interpreter'
+import { GeneratedError, GeneratedValue } from '../../vm-api/memory-store'
 
 type Issue = null | undefined | ValidationProblem | GeneratedError | RuntimeError
 

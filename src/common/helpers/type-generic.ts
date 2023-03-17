@@ -33,16 +33,8 @@ export const BOUND_KEYOF_S_TYPE = {
     structureSource: GENERIC_S_TYPE,
 } as VmKeyOfType
 
-// GENERIC_ITERABLE_T_TYPE An iterable with items of type GENERIC_T_TYPE; termination is undefined.
+// GENERIC_ITERABLE_T_TYPE An iterable with items of type GENERIC_T_TYPE
 export const GENERIC_ITERABLE_T_TYPE = {
     source: createCoreSource('types.generic-iterable'),
     valueType: GENERIC_T_TYPE,
-    terminates: undefined,
-} as VmIterableType
-
-// GENERIC_TERM_ITERABLE_T_TYPE An iterable with items of type GENERIC_T_TYPE, of finite length.
-export const GENERIC_TERM_ITERABLE_T_TYPE = {
-    source: createCoreSource('types.generic-iterable'),
-    valueType: GENERIC_T_TYPE,
-    terminates: true,
 } as VmIterableType

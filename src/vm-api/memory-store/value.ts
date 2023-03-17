@@ -5,17 +5,33 @@ import { MemoryCell, VmMemoryIndex } from './cell'
 
 // NativeValue The value stored in VmNativeType cells.
 //  This does not allow returning "null".  Should it?
-export type NativeValue = object | number | string
+export type NativeValue = object | number | string | boolean
 
 // IterableValueVisitor visits each element in the value until the list ends or true is returned.
 //   This visits the memory value, to allow for possibly lazy loaded values.
-type IterableVisitor = (value: MemoryValue) => boolean
+type IterableVisitor = (
+    value: MemoryValue, extra: {
+        index: number,
+        first: boolean,
+        last: boolean,
+    },
+) => boolean
 
 // IterableValue The value stored in VmIterableType cells.
 export interface IterableValue {
     // forEach Pass each item in the iterable into the callback until the end of the list or true is returned.
+    //   If startIndex is given, then the iteration
     forEach(callback: IterableVisitor): void
-    // reduce? map? size?
+    forEach(callback: IterableVisitor, options: {
+        startIndex?: number,
+        endIndex?: number,
+    }): void
+
+    // size The number of items in the iterable.
+    size(): number
+
+    // 'reduce' and 'map' are not explicitly here, as those are better
+    //   handled through functional tools outside the opcode.
 }
 
 // KeyOfValue The value stored in VmKeyOfType cells.

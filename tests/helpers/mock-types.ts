@@ -2,52 +2,8 @@
 
 import { RuntimeError } from '../../src/errors'
 import { RuntimeSourcePosition } from '../../src/source'
-import { Module, OpCodeFrame, ScriptContext } from '../../src/vm-api/interpreter'
-import { MemoryCell, MemoryValue, OpCodeBoundTypes } from '../../src/vm-api/memory-store'
+import { ScriptContext } from '../../src/vm-api/interpreter'
 import { TypeStore, TypeStoreManager, VmType } from '../../src/vm-api/type-system'
-
-let cellCount = 0
-
-// generateConstCell Create a memory cell to contain a constant value
-export function generateConstCell(
-    type: VmType,
-    name: string,
-    module: string = "test",
-): MemoryCell {
-    return {
-        source: {
-            moduleName: module,
-            line: cellCount++,
-            column: 1,
-        },
-        type,
-        module,
-        constant: name,
-    }
-}
-
-export function generateOpCodeFrame(settings: {
-    values: MemoryValue[],
-    returnType: VmType,
-    types: TypeStoreManager,
-    boundTypes?: OpCodeBoundTypes,
-    modules?: {[name: string]: Module},
-}): OpCodeFrame {
-    return {
-        source: {
-            moduleName: "test",
-            line: cellCount++,
-            column: 1,
-        },
-        context: {
-            modules: settings.modules || {},
-            types: settings.types.getTypeStore(),
-        },
-        args: settings.values,
-        returnType: settings.returnType,
-        boundTypes: settings.boundTypes || {},
-    }
-}
 
 
 export class MockTypeStoreManager implements TypeStoreManager {

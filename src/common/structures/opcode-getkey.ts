@@ -2,9 +2,8 @@
 
 import { ValidationProblem } from '../../errors'
 import { createCoreSource, RuntimeSourcePosition } from '../../source'
-import { OpCodeInstruction, OpCodeResult, EvaluationKind, OpCodeFrame } from '../../vm-api/interpreter'
-import { LazyValue } from '../../vm-api/interpreter/instructions'
-import { EvaluatedValue, StructuredValue, VmOpCode } from '../../vm-api/memory-store'
+import { OpCodeInstruction, EvaluationKind, OpCodeFrame } from '../../vm-api/interpreter'
+import { EvaluatedValue, LazyValue, OpCodeResult, StructuredValue, VmOpCode } from '../../vm-api/memory-store'
 import { KeyOfValue } from '../../vm-api/memory-store/value'
 import { VmGenericBindHint } from '../../vm-api/type-system'
 import { GENERIC_S_TYPE, BOUND_KEYOF_S_TYPE, GENERIC_R_TYPE } from '../helpers/type-generic'
@@ -21,10 +20,6 @@ export class GetKeyOpCode implements OpCodeInstruction {
         {
             id: 'S',
             bindHint: VmGenericBindHint.structure,
-        },
-        {
-            id: 'K',
-            bindHint: VmGenericBindHint.keyof,
         },
         {
             id: 'R',

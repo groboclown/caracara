@@ -3,9 +3,8 @@
 import { ValidationProblem } from '../../errors'
 import { GENERIC_T_TYPE, GENERIC_ITERABLE_T_TYPE } from '../helpers/type-generic'
 import { createCoreSource, RuntimeSourcePosition } from '../../source'
-import { OpCodeFrame, OpCodeInstruction, OpCodeResult } from '../../vm-api/interpreter'
-import { EvaluationKind, LazyValue } from '../../vm-api/interpreter/instructions'
-import { EvaluatedValue, IterableValue, MemoryValue, VmOpCode } from '../../vm-api/memory-store'
+import { OpCodeFrame, OpCodeInstruction, EvaluationKind } from '../../vm-api/interpreter'
+import { EvaluatedValue, IterableValue, LazyValue, MemoryValue, OpCodeResult, VmOpCode } from '../../vm-api/memory-store'
 import { VmGenericBindHint } from '../../vm-api/type-system'
 
 // OPCODE__PEEK Mneumonic for the instruction.
