@@ -1,6 +1,6 @@
 // The type store manager implementation.
 
-import { ERROR__IMPL_DUPLICATE_TYPE, ERROR__USER__TYPE_MISMATCH, RuntimeError, VM_BUG_UNKNOWN_PRIMARY_TYPE } from "../../errors"
+import { ERROR__USER__TYPE_MISMATCH, ERROR__USER__UNKOWN_TYPE, RuntimeError, VM_BUG_UNKNOWN_PRIMARY_TYPE } from "../../errors"
 import { RuntimeSourcePosition } from "../../source"
 import { isVmCallableType, isVmGenericRef, isVmIterableType, isVmKeyOfType, isVmNativeType, isVmStructuredType, TypeStore, TypeStoreManager, VmGenericRef, VmType } from "../../vm-api/type-system"
 
@@ -22,17 +22,246 @@ export class TypeStoreManagerImpl implements TypeStoreManager {
             // identical entry.  Keep it and this is fine.
             return null
         }
-        if (this.typeMap[type.name] !== undefined) {
-            return {
-                source: type.source,
-                errorId: ERROR__IMPL_DUPLICATE_TYPE,
-                parameters: {
-                    type: type.name,
-                },
-            } as RuntimeError
+        const existsError = this.deepAdd(type)
+        if (!Array.isArray(existsError)) {
+            return existsError
         }
         this.typeMap[type.name] = type
         return null
+    }
+
+    // deepAdd Recursive check to see if the type is registered identically, and return all new types.
+    //    If it's not registered, or its sub-types are not registered, then all those types are returned.
+    //    This is done outside the addType call, because if any one of the types fails, then the
+    //    whole add fails and none of them should be added (atomic operation).
+    private deepAdd(addedType: VmType): RuntimeError | VmType[] {
+        const alreadyChecked: {[typePair: string]: RuntimeError | true} = {}
+        const stack: VmType[] = [addedType]
+        const discovered: VmType[] = []
+        const discoveredNames: {[name: string]: boolean} = {}
+
+        // There is a lot of overlap between this and the compatibility checks.
+        // TODO unify the compatibility check and this check.
+        while (true) {
+            const newType = stack.pop()
+            if (newType === undefined) {
+                break
+            }
+            if (alreadyChecked[newType.name] !== undefined) {
+                // Don't infinitely recurse.
+                continue
+            }
+            alreadyChecked[newType.name] = true
+
+            // Simple checks.
+            const existingType = this.typeMap[newType.name]
+            if (existingType === undefined) {
+                // New type.
+                discovered.push(newType)
+                discoveredNames[newType.name] = true
+                // Note: keep going, for deep type addition.
+            }
+            if (newType === existingType) {
+                // Exactly the same.  Skip it.
+                continue
+            }
+
+            // Native type
+            if (isVmNativeType(newType)) {
+                if (existingType === undefined) {
+                    // Not a recursive type
+                    continue
+                }
+                // Check if they are the same.
+                if (!isVmNativeType(existingType)) {
+                    return createTypeMismatchError(addedType.source, existingType, newType)
+                }
+                if (newType.internalType !== existingType.internalType) {
+                    return createTypeMismatchError(addedType.source, existingType, newType)
+                }
+                // They are the same.
+                continue
+            }
+
+            // KeyOf type.
+            //   This doesn't make sense to have if the underlying structure doesn't exist,
+            //   but still check it anyway.
+            if (isVmKeyOfType(newType)) {
+                if (existingType !== undefined) {
+                    // Need to perform identity check.
+                    if (!isVmKeyOfType(existingType)) {
+                        return createTypeMismatchError(addedType.source, existingType, newType)
+                    }
+                    // This overlaps with iterable type checking...
+                    const existingSub = existingType.structureSource
+                    const newSub = newType.structureSource
+                    if (isVmGenericRef(existingSub) || isVmGenericRef(newSub)) {
+                        // Not a recursive call, so don't save off the results.
+                        const ret = matchGenericRef(addedType.source, existingSub, newSub)
+                        if (ret !== true) {
+                            return ret
+                        }
+                        // The types match up.
+                        continue
+                    }
+                    // Real structures.
+                    // Perform a light name check to see if a deep check needs to happen.
+                    //   If they don't even have the same name, then don't go deeper, because the
+                    //   deep type check might be a false positive.
+                    if (existingSub.name !== newSub.name) {
+                        return createTypeMismatchError(addedType.source, existingSub, newSub)
+                    }
+                    // The sub can be checked now deeply.
+                    stack.push(newSub)
+                    continue
+                }
+                // Add the type as discovered, and check the sub type.
+                discovered.push(newType)
+                discoveredNames[newType.name] = true
+                if (!isVmGenericRef(newType.structureSource)) {
+                    stack.push(newType.structureSource)
+                }
+                continue
+            }
+            if (isVmIterableType(newType)) {
+                if (existingType !== undefined) {
+                    // Need to perform identity check.
+                    if (!isVmIterableType(existingType)) {
+                        return createTypeMismatchError(addedType.source, existingType, newType)
+                    }
+                    const existingSub = existingType.valueType
+                    const newSub = newType.valueType
+                    if (isVmGenericRef(existingSub) || isVmGenericRef(newSub)) {
+                        // Not a recursive call, so don't save off the results.
+                        const ret = matchGenericRef(addedType.source, existingSub, newSub)
+                        if (ret !== true) {
+                            return ret
+                        }
+                        // The types match up.
+                        continue
+                    }
+                    // Real structures.
+                    // Perform a light name check to see if a deep check needs to happen.
+                    //   If they don't even have the same name, then don't go deeper, because the
+                    //   deep type check might be a false positive.
+                    if (existingSub.name !== newSub.name) {
+                        return createTypeMismatchError(addedType.source, existingSub, newSub)
+                    }
+                    // The sub can be checked now deeply.
+                    stack.push(newSub)
+                    continue
+                }
+                // Add the type as discovered, and check the sub type.
+                discovered.push(newType)
+                discoveredNames[newType.name] = true
+                if (!isVmGenericRef(newType.valueType)) {
+                    stack.push(newType.valueType)
+                }
+                continue
+            }
+            if (isVmStructuredType(newType)) {
+                if (existingType !== undefined) {
+                    // Need to perform identity check.
+                    if (!isVmStructuredType(existingType)) {
+                        return createTypeMismatchError(addedType.source, existingType, newType)
+                    }
+                    // Types must be identical, unlike normal "applicable for" checking.
+                    const newKeys = Object.keys(newType.stores)
+                    if (!areKeySetsEqual(newKeys, Object.keys(existingType.stores))) {
+                        return createTypeMismatchError(addedType.source, existingType, newType)
+                    }
+                    for (let idx = 0; idx < newKeys.length; idx++) {
+                        const existingSub = existingType.stores[newKeys[idx]].valueType
+                        const newSub = newType.stores[newKeys[idx]].valueType
+                        // Keyed types can't be generic.
+                        // Perform a light name check to see if a deep check needs to happen.
+                        //   If they don't even have the same name, then don't go deeper, because the
+                        //   deep type check might be a false positive.
+                        if (existingSub.name !== newSub.name) {
+                            return createTypeMismatchError(addedType.source, existingSub, newSub)
+                        }
+                        // The sub can be checked now deeply.
+                        stack.push(newSub)
+                    }
+                    continue
+                }
+                // Add the type as discovered, and check the sub type.
+                discovered.push(newType)
+                discoveredNames[newType.name] = true
+                Object.keys(newType.stores).forEach((key) => {
+                    stack.push(newType.stores[key].valueType)
+                })
+                continue
+            }
+            if (isVmCallableType(newType)) {
+                if (existingType !== undefined) {
+                    // Need to perform identity check.
+                    if (!isVmCallableType(existingType)) {
+                        return createTypeMismatchError(addedType.source, existingType, newType)
+                    }
+                    const existingRet = existingType.returnType
+                    const newRet = newType.returnType
+                    if (isVmGenericRef(existingRet) || isVmGenericRef(newRet)) {
+                        // Not a recursive call, so don't save off the results.
+                        const ret = matchGenericRef(addedType.source, existingRet, newRet)
+                        if (ret !== true) {
+                            return ret
+                        }
+                        // The types match up.
+                        // Fall through.
+                    } else {
+                        // Real structures.
+                        // Perform a light name check to see if a deep check needs to happen.
+                        //   If they don't even have the same name, then don't go deeper, because the
+                        //   deep type check might be a false positive.
+                        if (existingRet.name !== newRet.name) {
+                            return createTypeMismatchError(addedType.source, existingRet, newRet)
+                        }
+                        // The ret can be checked now deeply.
+                        stack.push(newRet)
+                        // Fall through.
+                    }
+
+                    const existingArg = existingType.argumentType
+                    const newArg = newType.argumentType
+                    if (isVmGenericRef(existingArg) || isVmGenericRef(newArg)) {
+                        // Not a recursive call, so don't save off the results.
+                        const ret = matchGenericRef(addedType.source, existingArg, newArg)
+                        if (ret !== true) {
+                            return ret
+                        }
+                        // The types match up.
+                        continue
+                    }
+                    // Perform a light name check to see if a deep check needs to happen.
+                    //   If they don't even have the same name, then don't go deeper, because the
+                    //   deep type check might be a false positive.
+                    if (existingArg.name !== newArg.name) {
+                        return createTypeMismatchError(addedType.source, existingArg, newArg)
+                    }
+                    // The sub can be checked now deeply.
+                    stack.push(newArg)
+                    continue
+                }
+                discovered.push(newType)
+                discoveredNames[newType.name] = true
+                if (!isVmGenericRef(newType.returnType)) {
+                    stack.push(newType.returnType)
+                }
+                if (!isVmGenericRef(newType.argumentType)) {
+                    stack.push(newType.argumentType)
+                }
+            }
+            // Not a valid VmType.
+            return {
+                source: addedType.source,
+                errorId: ERROR__USER__UNKOWN_TYPE,
+                parameters: {
+                    type: newType.name,
+                }
+            } as RuntimeError
+        }
+        return discovered
     }
 }
 
@@ -226,7 +455,7 @@ function innerTypeMatch(
         // check arguments type
         //   It's the last thing to check for this type, so just return it directly.
         //   This caches any recursion.
-        return matchMaybeGenericTypes(source, expected.argumentTypes, actual.argumentTypes, key, alreadyChecked)
+        return matchMaybeGenericTypes(source, expected.argumentType, actual.argumentType, key, alreadyChecked)
     }
 
     // Invalid state.
@@ -246,7 +475,7 @@ function matchMaybeGenericTypes(
     deepActual: VmType | VmGenericRef,
     key: string,
     alreadyChecked: {[typePair: string]: RuntimeError | true},
-) {
+): RuntimeError | true {
     if (isVmGenericRef(deepExpected) || isVmGenericRef(deepActual)) {
         // Not a recursive call, so don't save off the results.
         return matchGenericRef(source, deepExpected, deepActual)
@@ -299,3 +528,20 @@ function matchGenericRef(source: RuntimeSourcePosition, expected: VmType | VmGen
     return true
 }
 
+function areKeySetsEqual(first: string[], second: string[]): boolean {
+    if (first.length !== second.length) {
+        return false
+    }
+    const firstKeys: {[name: string]: boolean} = {}
+    for (let idx = 0; idx < first.length; idx++) {
+        firstKeys[first[idx]] = true
+    }
+    for (let idx = 0; idx < second.length; idx++) {
+        if (firstKeys[second[idx]] === true) {
+            firstKeys[second[idx]] = false
+        } else {
+            return false
+        }
+    }
+    return true
+}

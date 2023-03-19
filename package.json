@@ -7,8 +7,9 @@
     "lint": "eslint src/** --ext .js,.ts",
     "lint-fixer": "eslint src/** --ext .js,.ts --fix",
     "test": "jest",
-    "build": "tsc",
-    "build-examples": "tsc --noEmit examples/**/*.ts tests/**/*.ts",
+    "compile": "tsc",
+    "build": "tsc --build",
+    "compile-examples": "tsc --noEmit examples/**/*.ts",
     "clean": "rimraf ./dist ./lib"
   },
   "jest": {
@@ -16,7 +17,8 @@
       "<rootDir>/tests/**/*.test.ts"
     ],
     "preset": "ts-jest",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "collectCoverage": true
   },
   "author": "Groboclown",
   "license": "MIT",

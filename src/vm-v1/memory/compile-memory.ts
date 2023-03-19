@@ -1,12 +1,12 @@
 // Compile the module memory into a easy to use form.
 
 import { ValidationCollector } from "../../common/helpers"
-import { ERROR__IMPL_CONFLICTING_TYPES, ERROR__IMPL_DUPLICATE_MODULE_NAMES, ERROR__IMPL_MISSING_DECLARED_TYPE } from "../../errors"
-import { ValidationProblem, ValidationResult } from "../../errors/struct"
-import { Module } from "../../vm-api/interpreter"
-import { ConstantRefMemoryCell, EvaluatedValue } from "../../vm-api/memory-store"
+import { ERROR__IMPL_DUPLICATE_MODULE_NAMES } from "../../errors"
+import { RuntimeError, ValidationResult } from "../../errors/struct"
+import { ConstantValue, Module } from "../../vm-api/interpreter"
+import { CallableValue, ConstantRefMemoryCell, EvaluatedValue } from "../../vm-api/memory-store"
 import { ExternalMemoryCell, isConstantRefMemoryCell } from "../../vm-api/memory-store/cell"
-import { TypeStore } from "../../vm-api/type-system"
+import { isVmCallableType, TypeStoreManager } from "../../vm-api/type-system"
 import { addConstantValue, MemoryValueManager } from "./constant-memory"
 import { InternalMemoryValue, ModuleConstantMemory } from "./memory-value"
 
@@ -26,7 +26,7 @@ export interface CompiledMemory {
 // compileMemory Compile the module constant values into internal forms.
 //   This does not compile the callable values.
 export function compileMemory(
-    typeStore: TypeStore,
+    typeStore: TypeStoreManager,
     modules: Module[],
 ): ValidationResult<CompiledMemory> {
     const problems = new ValidationCollector()
@@ -49,30 +49,10 @@ export function compileMemory(
         Object.keys(module.constants).forEach((constantName) => {
             const constant = module.constants[constantName]
 
-            // Simple type checking
-            const realType = typeStore.getTypeByName(constant.type.name)
-            if (realType === undefined) {
-                problems.add({
-                    source: constant.source,
-                    problemId: ERROR__IMPL_MISSING_DECLARED_TYPE,
-                    parameters: {
-                        module: module.name,
-                        constant: constantName,
-                        type: constant.type.name,
-                    }
-                } as ValidationProblem)
-                return
-            }
-            if (realType !== constant.type) {
-                problems.add({
-                    source: constant.source,
-                    problemId: ERROR__IMPL_CONFLICTING_TYPES,
-                    parameters: {
-                        module: module.name,
-                        constant: constantName,
-                        type: constant.type.name,
-                    }
-                } as ValidationProblem)
+            // Type registration and enforcement
+            const addRes = registerConstantType(typeStore, constant)
+            if (addRes !== null) {
+                problems.add(addRes)
                 return
             }
 
@@ -143,4 +123,25 @@ class CompilingMemoryManager implements MemoryValueManager {
 // createModuleConstantId Create a module/constant identifier for quick lookups.
 export function createModuleConstantId(moduleName: string, constantName: string): string {
     return `${moduleName}!${constantName}`
+}
+
+function registerConstantType(typeStore: TypeStoreManager, constant: ConstantValue): RuntimeError | null {
+    // Note that this could perform checking for every cell, helping the user reduce rerun attempts.
+    const outerTypeRes = typeStore.addType(constant.type)
+    if (outerTypeRes !== null) {
+        return outerTypeRes
+    }
+    if (isVmCallableType(constant.type)) {
+        // Register / check the cell types, too.
+        const callableValue = constant.value as CallableValue
+        const cellIdxList = Object.keys(callableValue.cells)
+        for (let idx = 0; idx < cellIdxList.length; idx++) {
+            const cell = callableValue.cells[+cellIdxList[idx] as keyof typeof callableValue.cells]
+            const cellRes = typeStore.addType(cell.type)
+            if (cellRes !== null) {
+                return cellRes
+            }
+        }
+    }
+    return null
 }

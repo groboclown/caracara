@@ -51,7 +51,7 @@ export class ScriptLoaderImpl implements ScriptLoader {
         modules: Module[],
     ): ValidationResult<Interpreter> {
         const memoryRes = compileMemory(
-            this.opcodes.typeManager.getTypeStore(),
+            this.opcodes.typeManager,
             modules,
         )
 

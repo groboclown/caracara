@@ -6,6 +6,7 @@ import { TypeStore, TypeStoreManager, VmType } from '../../src/vm-api/type-syste
 import { MockMemoryFactory } from './mock-memory'
 import { MockModule } from './mock-module'
 import { MockTypeStoreManager } from './mock-types'
+import { createTestSource } from './test-source'
 
 export class MockScriptContext implements ScriptContext {
     // modules Referencable memory modules.
@@ -23,8 +24,8 @@ export class MockScriptContext implements ScriptContext {
         this.types = this.typeManager.getTypeStore()
     }
 
-    createModule(name: string): MockModule {
-        const ret = new MockModule(null, name)
+    createModule(name: string, testStackDepth: number = 0): MockModule {
+        const ret = new MockModule(createTestSource(testStackDepth + 1), name)
         this.mockModules[name] = this.modules[name] = ret
         return ret
     }

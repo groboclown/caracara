@@ -106,9 +106,9 @@ export function isVmIterableType(val: VmType): val is VmIterableType {
 
 // VmTypedCallable call signature for a function
 interface VmTypedCallable {
-    // argumentTypes The arguments passed to the callable.  All arguments to a user
-    //   function are passed as key-value pairs.
-    readonly argumentTypes: VmStructuredType | VmGenericRef
+    // argumentType The argument passed to the callable.
+    //   The argument to a user function is passed as key-value pairs.
+    readonly argumentType: VmStructuredType | VmGenericRef
 
     // returnType The value returned by the function.
     readonly returnType: VmType | VmGenericRef
@@ -119,7 +119,7 @@ export type VmCallableType = VmTypedCallable & VmType
 
 // isVmCallableType Type checker
 export function isVmCallableType(val: VmType): val is VmCallableType {
-    return (<VmCallableType>val).argumentTypes !== undefined
+    return (<VmCallableType>val).argumentType !== undefined
 }
 
 // VmTypedKeyOf The name of a key in a structured type.
