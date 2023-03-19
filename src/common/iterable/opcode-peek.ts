@@ -47,7 +47,7 @@ export class PeekIterableOpCode implements OpCodeInstruction {
     }
 
     evaluate(settings: OpCodeFrame): OpCodeResult {
-        const list = settings.args[0].value as IterableValue
+        const list = settings.args[0].memoized as IterableValue
         const loaded: MemoryValue[] = []
         list.forEach((v) => {
             loaded.push(v)
@@ -57,7 +57,7 @@ export class PeekIterableOpCode implements OpCodeInstruction {
         if (loaded.length < 1) {
             // Empty list.  Return the default value.
             return {
-                lazy: settings.args[0].value
+                lazy: settings.args[0].memoized
             } as LazyValue
         }
         return {

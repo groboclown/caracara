@@ -38,11 +38,11 @@ export function isMemoryValueInteger(value: MemoryValue): boolean {
     if (!isMemoryCellInteger(value.cell)) {
         return false
     }
-    if (value.value === undefined) {
+    if (value.memoized === undefined) {
         // could be!
         return true
     }
-    return isEvaluatedInteger(value.value)
+    return isEvaluatedInteger(value.memoized)
 }
 
 // validateMemoryValueInteger Ensure the value is an integer
@@ -52,7 +52,7 @@ export function validateMemoryValueInteger(
     requiresEvaluation = true,
 ): ValidationProblem | null {
     const value = settings.args[index]
-    if (value.value === undefined) {
+    if (value.memoized === undefined) {
         if (!requiresEvaluation) {
             return null
         }
@@ -80,7 +80,7 @@ export function validateMemoryValueInteger(
 
 // memoryValueAsInteger Quick value extraction.
 export function memoryValueAsInteger(value: MemoryValue): number {
-    return (value.value as number) | 0
+    return (value.memoized as number) | 0
 }
 
 // NUMBER_TYPE A floating point number
@@ -116,11 +116,11 @@ export function isMemoryValueNumber(value: MemoryValue): boolean {
     if (!isMemoryCellNumber(value.cell)) {
         return false
     }
-    if (value.value === undefined) {
+    if (value.memoized === undefined) {
         // could be!
         return true
     }
-    return isEvaluatedNumber(value.value)
+    return isEvaluatedNumber(value.memoized)
 }
 
 export function validateMemoryValueNumber(
@@ -129,7 +129,7 @@ export function validateMemoryValueNumber(
     requiresEvaluation = true,
 ): ValidationProblem | null {
     const value = settings.args[index]
-    if (value.value === undefined) {
+    if (value.memoized === undefined) {
         if (!requiresEvaluation) {
             return null
         }
@@ -157,5 +157,5 @@ export function validateMemoryValueNumber(
 
 // memoryValueAsNumber Quick value extraction.
 export function memoryValueAsNumber(value: MemoryValue): number {
-    return value.value as number
+    return value.memoized as number
 }

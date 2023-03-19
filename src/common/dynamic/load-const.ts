@@ -38,7 +38,7 @@ export class LoadConstOpCode implements OpCodeInstruction {
 
     staticValidation(settings: OpCodeFrame): ValidationProblem[] {
         // Perform some evaluations if arguments are constant.
-        if (settings.args[0].value !== undefined && settings.args[1].value !== undefined) {
+        if (settings.args[0].memoized !== undefined && settings.args[1].memoized !== undefined) {
             // Can perform full evaluation here.  The values are constant.
             const res1 = this.runtimeValidation(settings)
             if (res1.length > 0) {
@@ -57,7 +57,7 @@ export class LoadConstOpCode implements OpCodeInstruction {
             return []
         }
 
-        if (settings.args[0].value !== undefined) {
+        if (settings.args[0].memoized !== undefined) {
             // Can perform a limited evaluation here.  The module name is constant.
             const res1 = validateMemoryValueString(settings, 0)
             if (res1 !== null) {

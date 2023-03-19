@@ -23,11 +23,11 @@ export function isMemoryValueMetaType(value: MemoryValue): boolean {
     if (!isMemoryCellMetaType(value.cell)) {
         return false
     }
-    if (value.value === undefined) {
+    if (value.memoized === undefined) {
         // could be!
         return true
     }
-    return isEvaluatedMetaType(value.value)
+    return isEvaluatedMetaType(value.memoized)
 }
 
 export function validateMemoryValueMetaType(
@@ -36,7 +36,7 @@ export function validateMemoryValueMetaType(
     requiresEvaluation = true,
 ): ValidationProblem | null {
     const value = settings.args[index]
-    if (value.value === undefined) {
+    if (value.memoized === undefined) {
         if (!requiresEvaluation) {
             return null
         }
@@ -59,13 +59,13 @@ export function validateMemoryValueMetaType(
             },
         } as ValidationProblem
     }
-    if (settings.context.types.getTypeByName(value.value as string) === undefined) {
+    if (settings.context.types.getTypeByName(value.memoized as string) === undefined) {
         return {
             source: settings.source,
             problemId: ERROR__USER__UNKOWN_TYPE,
             parameters: {
                 index,
-                name: value.value as string,
+                name: value.memoized as string,
             },
         }
     }
@@ -74,5 +74,5 @@ export function validateMemoryValueMetaType(
 
 // memoryValueAsMetaType Quickly extract the already validated value as a VmType.
 export function memoryValueAsMetaType(settings: OpCodeFrame, index: VmMemoryIndex): VmType {
-    return settings.context.types.getTypeByName(settings.args[index].value as string) as VmType
+    return settings.context.types.getTypeByName(settings.args[index].memoized as string) as VmType
 }

@@ -2,6 +2,7 @@
 //   These represent the implementing system view of the interpreter state.
 
 import { RuntimeSourcePosition } from '../../source'
+import { StructuredKeyType } from '../type-system/categories'
 import { MemoryCell, VmMemoryIndex } from './cell'
 
 // NativeValue The value stored in VmNativeType cells.
@@ -37,7 +38,7 @@ export interface IterableValue {
 
 // KeyOfValue The value stored in VmKeyOfType cells.
 export interface KeyOfValue {
-    readonly key: string
+    readonly key: StructuredKeyType
 }
 
 // StructuredValue The value stored in VmStructuredType calls.
@@ -45,10 +46,14 @@ export interface KeyOfValue {
 //   keys' values must be evaluated.  This is a non-lazy approach.
 //   This may change in the future.
 export interface StructuredValue {
-    readonly store: { [key: string]: EvaluatedValue }
+    readonly store: { [key: StructuredKeyType]: MemoryValue }
 }
 
+// CALLABLE_RETURN_MEMORY_INDEX Memory index number in the callable value that contains the returned value.
 export const CALLABLE_RETURN_MEMORY_INDEX: VmMemoryIndex = 0
+
+// CALLABLE_ARGUMENT_MEMORY_INDEX Memory index number in the callable value that contains the argument value.
+export const CALLABLE_ARGUMENT_MEMORY_INDEX: VmMemoryIndex = 1
 
 // CallableValue The value stored in VmCallableType cells.
 //     Additionally, this is the function memory layout constructed
@@ -59,10 +64,14 @@ export interface CallableValue {
     readonly source: RuntimeSourcePosition
 
     // cells: The layout of the callable function.
-    //   The cells MUST contain the CALLABLE_RETURN_MEMORY_INDEX index,
-    //   as that is the final return of this callable.  When the
+    //   The cells MUST contain the CALLABLE_RETURN_MEMORY_INDEX index
+    //   and the CALLABLE_ARGUMENT_MEMORY_INDEX index,
+    //   as that is the final return of this callable and the argument.  When the
     //   callable value is used in a CallingMemoryCell, the return
-    //   cell type must align with the CallingMemoryCell type.
+    //   cell type must align with the CallingMemoryCell type and the
+    //   argument must align with its cell type.
+    //   If a cell contains a memory index, it MUST refer to one of these
+    //   cells' indicies.
     readonly cells: {[index: VmMemoryIndex]: MemoryCell}
 }
 
@@ -77,7 +86,7 @@ export interface MemoryValue {
     readonly cell: MemoryCell
 
     // value The memoized / evaluated value of the cell, or not set if not evaluated yet.
-    readonly value?: EvaluatedValue | undefined
+    readonly memoized?: EvaluatedValue | undefined
 
     // If a "unspecified" evaluation method is eventually defined, then a future / promise
     //   will be made available as a value.

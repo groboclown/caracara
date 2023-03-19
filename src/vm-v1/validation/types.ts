@@ -2,8 +2,7 @@
 
 import { ValidationCollector } from "../../common/helpers";
 import { ERROR__IMPL_MISSING_DECLARED_TYPE, ERROR__IMPL_MISSING_NATIVE_TYPE, ValidationProblem } from "../../errors";
-import { OpCodeInstruction } from "../../vm-api/interpreter";
-import { isVmNativeType, TypeStore, VmType } from "../../vm-api/type-system";
+import { isVmNativeType, TypeStore } from "../../vm-api/type-system";
 
 // validateHasNativeTypes Validate the type store contains all the internal type named native types
 export function validateHasNativeTypes(

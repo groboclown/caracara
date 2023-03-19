@@ -25,6 +25,7 @@ export type {
     IterableValue,
     StructuredValue,
     CallableValue,
+    KeyOfValue,
     EvaluatedValue,
     MemoryValue,
 } from './value'

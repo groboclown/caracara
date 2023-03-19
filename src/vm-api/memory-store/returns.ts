@@ -10,14 +10,29 @@ export interface GeneratedError {
     error: RuntimeError
 }
 
+// isGeneratedError Type checker
+export function isGeneratedError(value: OpCodeResult): value is GeneratedError {
+    return isRuntimeError((<GeneratedError>value).error)
+}
+
 // GeneratedValue The opcode execution generated an evaluated value.
 export interface GeneratedValue {
     value: EvaluatedValue
 }
 
+// isGeneratedValue Type checker.
+export function isGeneratedValue(value: OpCodeResult): value is GeneratedValue {
+    return (<GeneratedValue>value).value !== undefined
+}
+
 // LazyValue The opcode execution returned a lazy value.
 export interface LazyValue {
     lazy: MemoryValue
+}
+
+// isLazyValue Type checker.
+export function isLazyValue(value: OpCodeResult): value is LazyValue {
+    return (<LazyValue>value).lazy !== undefined
 }
 
 // ReducedrValue The opcode returns a script function or opcode
@@ -53,6 +68,11 @@ export interface OpCodeReducerValue {
     //   If the iterator only contains zero or one element, this is passed as the first, and
     //   possibly the second, value to the opcode.
     initialValue: MemoryValue
+}
+
+// isOpCodeReducerValue Type checker.
+export function isOpCodeReducerValue(value: OpCodeResult): value is OpCodeReducerValue {
+    return (<OpCodeReducerValue>value).opcode !== undefined
 }
 
 // FunctionReducerValue A reducer that runs through a user function.
@@ -92,10 +112,10 @@ export interface FunctionReducerValue {
     initialValue: MemoryValue
 }
 
+// isFunctionReducerValue Type checker.
+export function isFunctionReducerValue(value: OpCodeResult): value is FunctionReducerValue {
+    return (<FunctionReducerValue>value).function !== undefined
+}
+
 // OpCodeResult The return value type for an opcode.
 export type OpCodeResult = GeneratedError | GeneratedValue | ReducerValue | LazyValue
-
-// isGeneratedError Type checker
-export function isGeneratedError(value: OpCodeResult): value is GeneratedError {
-    return typeof value === 'object' && isRuntimeError((<GeneratedError>value).error)
-}

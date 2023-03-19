@@ -1,8 +1,8 @@
 // The actual interpreter itself.
 
-import { EvaluatedValue, GeneratedError, GeneratedValue } from '../memory-store'
+import { GeneratedError, GeneratedValue } from '../memory-store'
 import { InterpreterDebuggerCallbacks } from './debugger-callbacks'
-import { ScriptContext } from './loaded-script'
+import { ScriptContext, StoredConstantValue } from './loaded-script'
 
 // Interpreter The instance of the function interpreter for a script context.
 export interface Interpreter {
@@ -15,5 +15,5 @@ export interface Interpreter {
     // runFunction Run a function with arguments and return the result.
     // The function must be a CallableValue constant stored in the module with the given
     //   name.
-    runFunction(module: string, name: string, argument: {[key: string]: EvaluatedValue}): GeneratedValue | GeneratedError
+    runFunction(module: string, name: string, argument: {[key: string]: StoredConstantValue}): GeneratedValue | GeneratedError
 }

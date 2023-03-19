@@ -1,21 +1,28 @@
 // VM Loader implementation
 
-import { ValidationProblem, ValidationResult } from '../errors/struct'
-import { ValidationCollector } from '../common/helpers'
-import { ScriptLoaderFactory, ScriptLoader, OpCodeInstruction, Interpreter, ScriptContext } from '../vm-api/interpreter'
-import { validateOpCode } from './validation/opcodes'
-import { VmOpCode } from '../vm-api/memory-store'
-import { ERROR__IMPL_DUPLICATE_OPCODES } from '../errors'
-import { isVmGenericRef, isVmIterableType, isVmNativeType, isVmStructuredType, VmGenericRef, VmType } from '../vm-api/type-system'
-import { OpCodeCollector, validateHasNativeTypes } from './validation'
+import { ValidationResult } from '../errors/struct'
+import { ScriptLoaderFactory, ScriptLoader, OpCodeInstruction, Interpreter, Module, ScriptContext } from '../vm-api/interpreter'
+import { VmNativeType } from '../vm-api/type-system'
+import { OpCodeCollector } from './validation'
 import { InterpreterImpl } from './interpreter'
-import { validateTypeStore } from './validation/types'
 import { createOpCodeCollector } from './validation/loader-collector'
+import { compileMemory } from './memory'
+import { RootCompiler } from './compiler/root'
+import { CachingCallCompiler } from './compiler/caching'
+
+
+// getScriptLoaderFactory Get the script loader for this implementation.
+export function getScriptLoaderFactory(): ScriptLoaderFactoryImpl {
+    return SCRIPT_LOADER
+}
 
 // ScriptLoaderFactoryImpl The script loader constructor.
-export class ScriptLoaderFactoryImpl implements ScriptLoaderFactory {
-    createScriptLoader(opcodes: OpCodeInstruction[]): ValidationResult<ScriptLoader> {
-        const collector = createOpCodeCollector(opcodes)
+class ScriptLoaderFactoryImpl implements ScriptLoaderFactory {
+    createScriptLoader(
+        opcodes: OpCodeInstruction[],
+        nativeTypes: VmNativeType[],
+    ): ValidationResult<ScriptLoader> {
+        const collector = createOpCodeCollector(opcodes, nativeTypes)
         if (collector.isErr()) {
             return {
                 result: undefined,
@@ -25,12 +32,12 @@ export class ScriptLoaderFactoryImpl implements ScriptLoaderFactory {
         return {
             result: new ScriptLoaderImpl(collector),
             problems: collector.problems,
-        }
+        } as ValidationResult<ScriptLoader>
     }
 }
 
 // SCRIPT_LOADER The entrypoint.
-export const SCRIPT_LOADER = new ScriptLoaderFactoryImpl()
+const SCRIPT_LOADER = new ScriptLoaderFactoryImpl()
 
 // ScriptLoaderImpl The interpreter constructor.
 export class ScriptLoaderImpl implements ScriptLoader {
@@ -40,20 +47,32 @@ export class ScriptLoaderImpl implements ScriptLoader {
         this.opcodes = opcodes
     }
 
-    parseScript(context: ScriptContext): ValidationResult<Interpreter> {
-        const problems = new ValidationCollector()
-        problems.add(this.opcodes.checkTypeStore(context.types))
-        problems.add(validateTypeStore(context.types))
+    parseScript(
+        modules: Module[],
+    ): ValidationResult<Interpreter> {
+        const memoryRes = compileMemory(
+            this.opcodes.typeManager.getTypeStore(),
+            modules,
+        )
 
-        // TODO validate modules
-        //      This will probably be done as part of a memory construction
-        //      routine that will be passed to the interpreter.
+        if (memoryRes.result === undefined) {
+            return { result: undefined, problems: memoryRes.problems }
+        }
+
+        const context = {
+            modules: memoryRes.result.modules,
+            types: this.opcodes.typeManager.getTypeStore(),
+        } as ScriptContext
+        const compiler = new RootCompiler(
+            memoryRes.result.memory.map((mcm) => mcm.memory),
+            memoryRes.result.moduleConsts,
+            this.opcodes.opcodes,
+            new CachingCallCompiler(context.types),
+        )
 
         return {
-            result: problems.isErr()
-                ? undefined
-                : new InterpreterImpl(this.opcodes.opcodes, context),
-            problems: problems.validations,
+            result: new InterpreterImpl(context, compiler),
+            problems: memoryRes.problems,
         }
     }
 }

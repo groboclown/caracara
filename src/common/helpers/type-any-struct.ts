@@ -28,7 +28,7 @@ export interface AnyStructureRet {
 }
 
 export function extractMemoryValueAnyStructure(source: RuntimeSourcePosition, index: VmMemoryIndex, value: MemoryValue): AnyStructureRet | RuntimeError {
-    if (value.value === undefined) {
+    if (value.memoized === undefined) {
         return {
             source,
             errorId: VM_BUG_NON_EVALUATED_VALUE,
@@ -48,5 +48,5 @@ export function extractMemoryValueAnyStructure(source: RuntimeSourcePosition, in
             },
         } as RuntimeError
     }
-    return {value: value.value as StructuredValue}
+    return {value: value.memoized as StructuredValue}
 }

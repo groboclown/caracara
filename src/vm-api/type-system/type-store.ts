@@ -27,6 +27,6 @@ export interface TypeStoreManager {
 
     // addType Add a new type to the system.
     //    Returns an error if the type already exists and is not the same value.
-    //    Adding duplicate identical type instances is okay.
+    //    Adding duplicate identical type instances (they point to the same memory address) is okay.
     addType(type: VmType): RuntimeError | null
 }

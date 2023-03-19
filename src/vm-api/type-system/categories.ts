@@ -46,7 +46,6 @@ export type VmGenericId = string
 export enum VmGenericBindHint {
     structure,
     iterable,
-    nonterminating_iterable,
     keyof,
     any,
 }
@@ -78,7 +77,7 @@ interface TypeKey {
 // VmTypedStructured A type that stores keyed values.
 //   The structured type cannot have generic key values.
 interface VmTypedStructure {
-    readonly stores: { [key: string]: TypeKey }
+    readonly stores: { [key: StructuredKeyType]: TypeKey }
 }
 
 // VmStructuredType The VM explicit structured type

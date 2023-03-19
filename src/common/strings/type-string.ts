@@ -32,11 +32,11 @@ export function isMemoryValueString(value: MemoryValue): boolean {
     if (!isMemoryCellString(value.cell)) {
         return false
     }
-    if (value.value === undefined) {
+    if (value.memoized === undefined) {
         // could be!
         return true
     }
-    return isEvaluatedString(value.value)
+    return isEvaluatedString(value.memoized)
 }
 
 // validateMemoryValueString Complete value type check and fetching
@@ -46,7 +46,7 @@ export function validateMemoryValueString(
     requireEvaluation = true,
 ): ValidationProblem | null {
     const value = settings.args[index]
-    if (value.value === undefined) {
+    if (value.memoized === undefined) {
         if (!requireEvaluation) {
             return null
         }
@@ -75,5 +75,5 @@ export function validateMemoryValueString(
 // memoryValueAsString quickly extracts the string value from the memory value
 //   Calling this requires that extractMemoryValueString does not return an error.
 export function memoryValueAsString(value: MemoryValue): string {
-    return value.value as string
+    return value.memoized as string
 }

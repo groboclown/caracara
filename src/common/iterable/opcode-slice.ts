@@ -67,8 +67,8 @@ export class SliceIterableOpCode implements OpCodeInstruction {
 
     private startEndCheck(settings: OpCodeFrame): ValidationCollector {
         const probs = new ValidationCollector()
-        const start = settings.args[1].value
-        const end = settings.args[2].value
+        const start = settings.args[1].memoized
+        const end = settings.args[2].memoized
         if (start !== undefined && isEvaluatedInteger(start)) {
             // start cannot be negative.
             if (start < 0) {
@@ -97,7 +97,7 @@ export class SliceIterableOpCode implements OpCodeInstruction {
     }
 
     evaluate(settings: OpCodeFrame, factory: MemoryFactory): OpCodeResult {
-        const list = settings.args[0].value as IterableValue
+        const list = settings.args[0].memoized as IterableValue
         const start = memoryValueAsInteger(settings.args[1])
         const end = memoryValueAsInteger(settings.args[2])
         if (start == end) {

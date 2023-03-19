@@ -1,17 +1,21 @@
 // Some type validation
 
 import { ValidationCollector } from "../../common/helpers";
-import { ERROR__IMPL_DUPLICATE_OPCODES, ERROR__IMPL_GENERIC_BINDING_DEEP, ERROR__IMPL_MISSING_DECLARED_TYPE, ERROR__IMPL_MISSING_NATIVE_TYPE, ValidationProblem } from "../../errors";
+import { ERROR__IMPL_DUPLICATE_OPCODES, ERROR__IMPL_GENERIC_BINDING_DEEP, ERROR__IMPL_MISSING_NATIVE_TYPE, RuntimeError, ValidationProblem } from "../../errors";
 import { OpCodeInstruction } from "../../vm-api/interpreter";
 import { VmOpCode } from "../../vm-api/memory-store";
-import { isVmGenericRef, isVmIterableType, isVmNativeType, isVmStructuredType, TypeStore, VmGenericRef, VmType } from "../../vm-api/type-system";
+import { isVmGenericRef, isVmIterableType, isVmNativeType, isVmStructuredType, TypeStoreManager, VmGenericRef, VmNativeType, VmType } from "../../vm-api/type-system";
+import { TypeStoreManagerImpl } from "../interpreter/type-manager";
 import { validateOpCode } from "./opcodes";
-import { validateHasNativeTypes } from "./types";
 
 
 // createOpCodeCollector Construct a collection for the declared opcodes.
-export function createOpCodeCollector(opcodes: OpCodeInstruction[]): OpCodeCollector {
+export function createOpCodeCollector(
+    opcodes: OpCodeInstruction[],
+    nativeTypes: VmNativeType[],
+): OpCodeCollector {
     const builder = new OpCodeCollectorBuilder()
+    nativeTypes.forEach((nt) => builder.addNativeType(nt))
     opcodes.forEach((oc) => builder.addOpCode(oc))
     return builder.build()
 }
@@ -20,32 +24,20 @@ export function createOpCodeCollector(opcodes: OpCodeInstruction[]): OpCodeColle
 export class OpCodeCollector {
     readonly opcodes: {[mnemonic: VmOpCode]: OpCodeInstruction}
     readonly problems: ValidationProblem[]
-    private nativeTypes: {[name: string]: boolean}
+    readonly typeManager: TypeStoreManager
 
     constructor(
         opcodes: {[mnemonic: VmOpCode]: OpCodeInstruction},
-        nativeTypes: {[name: string]: boolean},
+        typeManager: TypeStoreManager,
         problems: ValidationProblem[],
     ) {
         this.opcodes = opcodes
-        this.nativeTypes = nativeTypes
+        this.typeManager = typeManager
         this.problems = problems
     }
 
     isErr(): boolean {
         return this.problems.length > 0
-    }
-
-    // checkTypeStore Ensure the opcode declaration works with the given type store.
-    //   Returns validation issues associated just with the typestore.
-    checkTypeStore(typeStore: TypeStore): ValidationProblem[] {
-        const retProbs = new ValidationCollector()
-        retProbs.add(validateHasNativeTypes(
-            Object.keys(this.nativeTypes),
-            typeStore,
-        ))
-
-        return retProbs.validations
     }
 }
 
@@ -53,9 +45,14 @@ export class OpCodeCollector {
 class OpCodeCollectorBuilder {
     opcodes: {[mnemonic: VmOpCode]: OpCodeInstruction[]} = {}
     types: {[name: string]: ReferencedType[]} = {}
+    nativeTypes: VmNativeType[] = []
     problems: ValidationCollector = new ValidationCollector()
-    nativeTypes: {[name: string]: boolean}
     private built: boolean = false
+
+    // addNativeType Add an implementing system native type.
+    addNativeType(type: VmNativeType) {
+        this.nativeTypes.push(type)
+    }
 
     // addOpCode Add an opcode, extract types to the type values, and inspect it for problems.
     addOpCode(opcode: OpCodeInstruction) {
@@ -80,19 +77,21 @@ class OpCodeCollectorBuilder {
         // Ensure there aren't duplicate opcodes.  This allows us to report
         //   just one error for duplicates.
 
-        const retOpcodes: {[mnemonic: VmOpCode]: OpCodeInstruction} = winnowDuplicateOpCodes(
-            this.opcodes, this.problems,
-        )
+        const retOpcodes = winnowDuplicateOpCodes(this.opcodes, this.problems)
+
+        const typeStore = this.createTypeStoreManager()
 
         // TODO Validate the types are consistent between opcode definitions.
 
         return new OpCodeCollector(
             retOpcodes,
-            this.nativeTypes,
+            typeStore,
             this.problems.validations,
         )
     }
 
+    // addType Just add the type from the opcode + recursive types into the type record.
+    //   Later, this will be verified.
     private addType(
         opcode: OpCodeInstruction, topType: VmType | VmGenericRef,
     ) {
@@ -152,10 +151,7 @@ class OpCodeCollectorBuilder {
             }
 
             // Complex type checking for deep inspection.
-            if (isVmNativeType(type)) {
-                // ... and native type addition.
-                this.nativeTypes[type.internalType] = true
-            } else if (isVmIterableType(type)) {
+            if (isVmIterableType(type)) {
                 if (!isVmGenericRef(type.valueType)){
                     stack.push({
                         parent: type,
@@ -175,7 +171,66 @@ class OpCodeCollectorBuilder {
         }
     }
 
+    // createTypeStore Create the type store based off the current state, and populate error messages.
+    //   Should only be called at build time.
+    private createTypeStoreManager(): TypeStoreManager {
+        // Strategy: load up the native types, as they are supposed to be valid.  Also, while doing so,
+        //   keep track of the internal types.
+        //   Then, process the opcode types to ensure they line up.  Any native type in the opcode type
+        //   needs to be registered as a native type.
+        const nativeTypeInternalNames: {[name: string]: boolean} = {}
+        const ret = new TypeStoreManagerImpl()
+        this.nativeTypes.forEach((nt) => {
+            this.problems.add(ret.addType(nt))
+            nativeTypeInternalNames[nt.internalType] = true
+        })
+        Object.keys(this.types).forEach((typeName) => {
+            const typeList = this.types[typeName]
+            if (typeList.length === 1) {
+                // Simple form.
+                this.addTypeToStore(typeList[0], ret, nativeTypeInternalNames)
+            } else if (typeList.length > 1) {
+                // These need to all be identical, or it's an error.
+                // Fortunately, the type store semantics handle that well.
+                typeList.forEach((type) => this.addTypeToStore(type, ret, nativeTypeInternalNames))
+            }
+        })
+        return ret
+    }
+
+    // addTypeToStore Helper to put a type into the type store and some simple validation around native checking.
+    private addTypeToStore(ref: ReferencedType, tsm: TypeStoreManager, natives: {[name: string]: boolean}) {
+        const type = ref.type
+        if (isVmNativeType(type)) {
+            if (natives[type.internalType] === undefined) {
+                this.problems.add({
+                    source: ref.opcode.source,
+                    problemId: ERROR__IMPL_MISSING_NATIVE_TYPE,
+                    parameters: {
+                        type: type.name,
+                        nativeInternalType: type.internalType,
+                    }
+                } as ValidationProblem)
+            }
+        }
+        if (tsm.getTypeStore().getTypeByName(ref.type.name) === undefined) {
+            const res = tsm.addType(type)
+            if (res !== null) {
+                // Augment the error with information about the offending opcode source.
+                this.problems.add({
+                    ...res,
+                    parameters: {
+                        ...res.parameters,
+                        sourceOpCode: ref.opcode.opcode,
+                    },
+                } as RuntimeError)
+            }
+        }
+    }
+
 }
+
+
 
 // ReferencedType Container for tracking where types were declared.
 interface ReferencedType {

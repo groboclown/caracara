@@ -66,8 +66,8 @@ export class GetKeyOpCode implements OpCodeInstruction {
 
     evaluate(settings: OpCodeFrame): OpCodeResult {
         // Arguments are expected to be already matching the declaration.
-        const structure = settings.args[0].value as StructuredValue
-        const key = settings.args[1].value as KeyOfValue
+        const structure = settings.args[0].memoized as StructuredValue
+        const key = settings.args[1].memoized as KeyOfValue
 
         // const keyType = structure.store[key.key]
         return {
