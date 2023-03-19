@@ -52,11 +52,13 @@ describe('Functional test for the interpreter', () => {
                                     kind: "constant",
                                     module: "constant-load",
                                     constant: "one",
+                                    type: INTEGER_TYPE,
                                 } as ConstantRefMemoryCell,
                                 [CALLABLE_ARGUMENT_MEMORY_INDEX]: {
                                     source: createTestSource(),
                                     kind: "external",
                                     name: "arguments",
+                                    type: ANY_STRUCT_TYPE,
                                 } as ExternalMemoryCell,
                             },
                         } as CallableValue,

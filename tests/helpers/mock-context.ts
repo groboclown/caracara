@@ -55,7 +55,7 @@ export class MockScriptContext implements ScriptContext {
             typeof n === 'string' ? this.getMemoryValueRef(n) : n
         )
         return {
-            source: null,
+            source: createTestSource(1),
             context: this,
             args,
             returnType,

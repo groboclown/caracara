@@ -22,11 +22,13 @@ export class TypeStoreManagerImpl implements TypeStoreManager {
             // identical entry.  Keep it and this is fine.
             return null
         }
-        const existsError = this.deepAdd(type)
-        if (!Array.isArray(existsError)) {
-            return existsError
+        const addedOrError = this.deepAdd(type)
+        if (!Array.isArray(addedOrError)) {
+            return addedOrError
         }
-        this.typeMap[type.name] = type
+        addedOrError.forEach((newType) => {
+            this.typeMap[newType.name] = newType
+        })
         return null
     }
 
@@ -55,16 +57,13 @@ export class TypeStoreManagerImpl implements TypeStoreManager {
 
             // Simple checks.
             const existingType = this.typeMap[newType.name]
-            if (existingType === undefined) {
-                // New type.
-                discovered.push(newType)
-                discoveredNames[newType.name] = true
-                // Note: keep going, for deep type addition.
-            }
             if (newType === existingType) {
                 // Exactly the same.  Skip it.
                 continue
             }
+            // if existing type is undefined, then use the
+            // code below to possibly load its recrusive types,
+            // and to load it and check it.
 
             // Native type
             if (isVmNativeType(newType)) {
@@ -251,6 +250,7 @@ export class TypeStoreManagerImpl implements TypeStoreManager {
                 if (!isVmGenericRef(newType.argumentType)) {
                     stack.push(newType.argumentType)
                 }
+                continue
             }
             // Not a valid VmType.
             return {

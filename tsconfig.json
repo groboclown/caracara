@@ -1,38 +1,26 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "useDefineForClassFields": true,
-    "module": "ESNext",
     "lib": ["ESNext"],
+    "outDir": "dist",
+    "rootDirs": ["src", "tests"],
     "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "useDefineForClassFields": true,
     "strict": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "esModuleInterop": true,
     "noEmit": false,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
-    "skipLibCheck": true,
-    "outDir": "./dist/",
     "rootDir": ".",
-    "sourceMap": true,
-    "allowJs": false,
-    "types": [
-      "jest"
-    ],
-    "typeRoots": [
-      "node_modules/@types"
-    ]
+    "allowJs": false
   },
   "include": [
     "src/**/*.ts",
-    "tests/**/*.ts",
-    "node_modules/@types"
-  ],
-  "exclude": [
-    ".git",
-    "node_modules",
-    "dist"
+    "tests/**/*.ts"
   ]
 }

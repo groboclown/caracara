@@ -1,51 +1,27 @@
 {
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Jest via NPM",
-      "request": "launch",
-      "runtimeArgs": [
-        "run-script",
-        "test"
-      ],
-      "sourceMaps": true,
-      "resolveSourceMapLocations": [
-        "${workspaceFolder}/dist/**"
-      ],
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen",
-      "preLaunchTask": "npm: build",
-      "runtimeExecutable": "npm",
-      "skipFiles": [
-        "<node_internals>/**",
-        "node_modules/**"
-      ],
-      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
-      "type": "node"
-    },
-    {
-      "name": "Debug Jest Tests",
-      "type": "node",
-      "request": "launch",
-      "preLaunchTask": "npm: build",
-      "runtimeArgs": ["--inspect-brk", "${workspaceRoot}/node_modules/.bin/jest", "--runInBand", "--coverage", "false", "--no-cache"],
-      "console": "integratedTerminal",
-      "sourceMaps": true,
-      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
-      "resolveSourceMapLocations": [
-        "${workspaceFolder}/dist/**"
-      ],
-      "internalConsoleOptions": "neverOpen"
-    },
-    {
-      "name": "Debug Current Jest Test File",
-      "type": "node",
-      "request": "launch",
-      "sourceMaps": true,
-      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
-      "runtimeArgs": ["--inspect-brk", "${workspaceRoot}/node_modules/.bin/jest", "--runInBand", "--coverage", "false", "${relativeFile}"],
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
-    }
-  ]
-}
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug",
+        "type": "node",
+        "request": "launch",
+        "preLaunchTask": "npm: build",
+        "runtimeArgs": ["--inspect-brk", "${workspaceRoot}/node_modules/.bin/jest", "--runInBand", "--coverage", "false", "--no-cache"],
+        "console": "integratedTerminal",
+        "sourceMaps": true,
+        "outFiles": ["${workspaceFolder}/dist/**/*"],
+        "internalConsoleOptions": "neverOpen"
+      },
+      {
+        "name": "Current Test Debug",
+        "type": "node",
+        "request": "launch",
+        "preLaunchTask": "npm: build",
+        "runtimeArgs": ["--inspect-brk", "${workspaceRoot}/node_modules/.bin/jest", "--runInBand", "--coverage", "false", "--no-cache", "${relativeFile}"],
+        "console": "integratedTerminal",
+        "sourceMaps": true,
+        "outFiles": ["${workspaceFolder}/dist/**/*"],
+        "internalConsoleOptions": "neverOpen"
+      }
+    ]
+  }

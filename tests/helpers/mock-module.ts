@@ -45,7 +45,7 @@ export class MockModule implements Module {
                 module: this.name,
                 constant: name,
             } as ConstantRefMemoryCell,
-            value,
+            memoized: value,
         } as MemoryValue
         this.memValues.push(memv)
         this.byName[name] = memv
