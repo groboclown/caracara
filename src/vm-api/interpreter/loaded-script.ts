@@ -1,8 +1,21 @@
 // The complete script environment.
 
 import { RuntimeSourcePosition } from '../../source'
-import { EvaluatedValue } from '../memory-store'
+import { CallableValue } from '../memory-store'
+import { KeyOfValue, NativeValue } from '../memory-store/value'
 import { TypeStore, VmType } from '../type-system'
+import { StructuredKeyType } from '../type-system/categories'
+
+// StoredConstantValue Simplified version of EvaluatedValue
+//   The complex types are in a more native format to enforce all values existing,
+//   and to make it possible for implementing systems to create.
+export type StoredConstantValue = (
+    | NativeValue
+    | KeyOfValue
+    | CallableValue
+    | StoredConstantValue[]
+    | {[key: StructuredKeyType]: StoredConstantValue}
+)
 
 // ConstantValue A pre-evaluated value defined by the script.
 export interface ConstantValue {
@@ -14,7 +27,7 @@ export interface ConstantValue {
 
     // value The pre-evaluated value.
     // This must match the value's type.
-    value: EvaluatedValue
+    value: StoredConstantValue
 }
 
 // Module A single script unit

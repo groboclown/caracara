@@ -17,9 +17,10 @@ export interface TypeStore {
     //    Returns either an error, if the actual type does not conform to the expected type,
     //    or null, if it is fine,
     //    Implementations may cache some evaluations in order to speed up future checks.
-    enforceTypeMatch(requestor: RuntimeSourcePosition, actual: VmType, expected: VmType): RuntimeError | null
+    //    If the expected type is not passed, then the type store loads the corresponding name from
+    //    the internal store and compares against that.
+    enforceTypeMatch(requestor: RuntimeSourcePosition, actual: VmType, expected?: VmType): RuntimeError | null
 }
-
 
 // TypeStoreManager manages the construction of the type store.
 export interface TypeStoreManager {

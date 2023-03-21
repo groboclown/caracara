@@ -1,26 +1,18 @@
 // Declares the built-in integer simple type.
 
-import { RuntimeError, VM_BUG_NON_EVALUATED_VALUE, VM_MEMORY_TYPE_CONFUSION } from '../../errors'
-import { RuntimeSourcePosition } from '../../source'
+import { ERROR__USER__UNKOWN_TYPE, ValidationProblem, VM_BUG_NON_EVALUATED_VALUE, VM_MEMORY_TYPE_CONFUSION } from '../../errors'
+import { OpCodeFrame } from '../../vm-api/interpreter'
 import { EvaluatedValue, MemoryCell, MemoryValue, VmMemoryIndex } from '../../vm-api/memory-store'
-import { isVmCallableType, isVmIterableType, isVmNativeType, isVmStructuredType, META_TYPE, VmType } from '../../vm-api/type-system'
+import { isVmNativeType, META_TYPE, VmType } from '../../vm-api/type-system'
 
+// createEvaluatedMetaType Create an evaluated value that is of META_TYPE
+export function createEvaluatedMetaType(typeName: string): EvaluatedValue {
+    return typeName
+}
+
+// isEvaluatedMetaType Cursory glance into the value to see if it smells like a META_TYPE value
 export function isEvaluatedMetaType(value: EvaluatedValue): value is VmType {
-    if  (typeof value !== 'object') {
-        return false
-    }
-    // This is a very explicit check.  It could be faster.
-    if (typeof (<VmType>value).name !== 'string') {
-        return false
-    }
-    // VmTypes must be one of these four categories.
-    const valt = value as VmType
-    return (
-        isVmNativeType(valt)
-        || isVmIterableType(valt)
-        || isVmStructuredType(valt)
-        || isVmCallableType(valt)
-    )
+    return typeof value === 'string'
 }
 
 export function isMemoryCellMetaType(value: MemoryCell): boolean {
@@ -31,33 +23,56 @@ export function isMemoryValueMetaType(value: MemoryValue): boolean {
     if (!isMemoryCellMetaType(value.cell)) {
         return false
     }
-    if (value.value === undefined) {
+    if (value.memoized === undefined) {
         // could be!
         return true
     }
-    return isEvaluatedMetaType(value.value)
+    return isEvaluatedMetaType(value.memoized)
 }
 
-export function extractMemoryValueMetaType(source: RuntimeSourcePosition, index: VmMemoryIndex, value: MemoryValue): VmType | RuntimeError {
-    if (value.value === undefined) {
+export function validateMemoryValueMetaType(
+    settings: OpCodeFrame,
+    index: VmMemoryIndex,
+    requiresEvaluation = true,
+): ValidationProblem | null {
+    const value = settings.args[index]
+    if (value.memoized === undefined) {
+        if (!requiresEvaluation) {
+            return null
+        }
         return {
-            source,
-            errorId: VM_BUG_NON_EVALUATED_VALUE,
+            source: settings.source,
+            problemId: VM_BUG_NON_EVALUATED_VALUE,
             parameters: {
                 index,
             },
-        } as RuntimeError
+        } as ValidationProblem
     }
     if (!isMemoryValueMetaType(value)) {
         return {
-            source,
-            errorId: VM_MEMORY_TYPE_CONFUSION,
+            source: settings.source,
+            problemId: VM_MEMORY_TYPE_CONFUSION,
             parameters: {
                 index,
                 expected: META_TYPE.name,
                 actual: value.cell.type.name,
             },
-        } as RuntimeError
+        } as ValidationProblem
     }
-    return value.value as VmType
+    if (settings.context.types.getTypeByName(value.memoized as string) === undefined) {
+        return {
+            source: settings.source,
+            problemId: ERROR__USER__UNKOWN_TYPE,
+            parameters: {
+                index,
+                name: value.memoized as string,
+            },
+        }
+    }
+    return null
+}
+
+// memoryValueAsMetaType Quickly extract the already validated value as a VmType.
+export function memoryValueAsMetaType(settings: OpCodeFrame, index: VmMemoryIndex): VmType {
+    return settings.context.types.getTypeByName(settings.args[index].memoized as string) as VmType
 }

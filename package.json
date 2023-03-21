@@ -7,16 +7,30 @@
     "lint": "eslint src/** --ext .js,.ts",
     "lint-fixer": "eslint src/** --ext .js,.ts --fix",
     "test": "jest",
-    "start": "vite",
-    "build": "tsc && vite build",
+    "compile": "tsc",
+    "build": "tsc --build",
+    "compile-examples": "tsc --noEmit examples/**/*.ts",
     "clean": "rimraf ./dist ./lib"
+  },
+  "jest": {
+    "testMatch": [
+      "<rootDir>/tests/**/*.test.ts"
+    ],
+    "transform": {
+      "\\.ts$": "ts-jest"
+    },
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "collectCoverage": true
   },
   "author": "Groboclown",
   "license": "MIT",
   "devDependencies": {
     "@jest/globals": "^29.4.3",
+    "@types/jest": "^29.4.2",
     "@typescript-eslint/eslint-plugin": "^5.53.0",
     "@typescript-eslint/parser": "^5.53.0",
+    "ajv": "^8.12.0",
     "eslint": "^8.34.0",
     "eslint-config-standard-with-typescript": "^34.0.0",
     "eslint-plugin-import": "^2.27.5",
@@ -26,5 +40,7 @@
     "rimraf": "^4.1.2",
     "ts-jest": "^29.0.5",
     "typescript": "^4.9.5"
+  },
+  "dependencies": {
   }
 }

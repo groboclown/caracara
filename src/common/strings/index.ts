@@ -2,10 +2,12 @@
 
 export {
     STRING_TYPE,
+    createEvaluatedString,
     isEvaluatedString,
     isMemoryCellString,
     isMemoryValueString,
-    extractMemoryValueString,
+    validateMemoryValueString,
+    memoryValueAsString,
 } from './type-string'
 export {
     OPCODE__CONCAT_STRINGS,

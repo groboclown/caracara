@@ -1,12 +1,12 @@
 // Add numbers together.
 
 import { ValidationProblem } from '../../errors'
-import { isRuntimeError } from '../../errors/struct'
+import { ValidationCollector } from '../helpers/validation'
 import { createCoreSource, RuntimeSourcePosition } from '../../source'
-import { OpCodeInstruction, ScriptContext } from '../../vm-api/interpreter'
-import { GeneratedError, GeneratedValue, OpCodeResult, RequiresArgumentEvaluation } from '../../vm-api/interpreter/instructions'
-import { MemoryValue, VmOpCode } from '../../vm-api/memory-store'
-import { extractMemoryValueInteger, extractMemoryValueNumber, INTEGER_TYPE, NUMBER_TYPE } from './type-number'
+import { OpCodeInstruction } from '../../vm-api/interpreter'
+import { EvaluationKind, OpCodeFrame } from '../../vm-api/interpreter/instructions'
+import { EvaluatedValue, GeneratedValue, OpCodeResult, VmOpCode } from '../../vm-api/memory-store'
+import { memoryValueAsInteger, validateMemoryValueNumber, INTEGER_TYPE, NUMBER_TYPE, validateMemoryValueInteger, memoryValueAsNumber } from './type-number'
 
 // OPCODE__ADD_NUMBERS opcode for this operation.
 export const OPCODE__ADD_NUMBERS: VmOpCode = 'nadd'
@@ -15,39 +15,49 @@ export const OPCODE__ADD_NUMBERS: VmOpCode = 'nadd'
 export class OpCodeAddNumbers implements OpCodeInstruction {
     readonly source: RuntimeSourcePosition
     readonly opcode = OPCODE__ADD_NUMBERS
-    readonly argumentTypes = [NUMBER_TYPE, NUMBER_TYPE]
+    readonly argumentTypes = [
+        {
+            name: 'first',
+            type: NUMBER_TYPE,
+            evaluation: EvaluationKind.evaluated,
+        },
+        {
+            name: 'second',
+            type: NUMBER_TYPE,
+            evaluation: EvaluationKind.evaluated,
+        },
+    ]
     readonly returnType = NUMBER_TYPE
+    readonly generics = []
 
     constructor() {
         this.source = createCoreSource('core.numbers.add')
     }
 
-    validate(): ValidationProblem[] {
-        // No additional checks necessary beyond the arugment count and type checks.
-        return []
+    staticValidation(settings: OpCodeFrame): ValidationProblem[] {
+        return new ValidationCollector()
+            .add(validateMemoryValueNumber(settings, 0, false))
+            .add(validateMemoryValueNumber(settings, 1, false))
+            .validations
     }
 
-    evaluate(
-        source: RuntimeSourcePosition,
-        _context: ScriptContext, args: MemoryValue[],
-    ): OpCodeResult {
-        if (args[0].value === undefined || args[1].value === undefined) {
-            // Arguments must be evaluated.
-            return {
-                requires: args.filter((x: MemoryValue) => x.value === undefined)
-            } as RequiresArgumentEvaluation
-        }
-        const arg0 = extractMemoryValueNumber(source, 0, args[0])
-        if (isRuntimeError(arg0)) {
-            return { error: arg0 } as GeneratedError
-        }
-        const arg1 = extractMemoryValueNumber(source, 1, args[1])
-        if (isRuntimeError(arg1)) {
-            return { error: arg1 } as GeneratedError
-        }
+    runtimeValidation(settings: OpCodeFrame): ValidationProblem[] {
+        return new ValidationCollector()
+            .add(validateMemoryValueNumber(settings, 0, true))
+            .add(validateMemoryValueNumber(settings, 1, true))
+            .validations
+    }
+
+    evaluate(settings: OpCodeFrame): OpCodeResult {
+        const arg0 = memoryValueAsNumber(settings.args[0])
+        const arg1 = memoryValueAsNumber(settings.args[1])
         return {
             value: arg0 + arg1
         } as GeneratedValue
+    }
+
+    returnValidation(_settings: OpCodeFrame, _value: EvaluatedValue): ValidationProblem[] {
+        return []
     }
 }
 
@@ -58,38 +68,49 @@ export const OPCODE__ADD_INTEGERS: VmOpCode = 'iadd'
 export class OpCodeAddIntegers implements OpCodeInstruction {
     readonly source: RuntimeSourcePosition
     readonly opcode = OPCODE__ADD_INTEGERS
-    readonly argumentTypes = [INTEGER_TYPE, INTEGER_TYPE]
+    readonly argumentTypes = [
+        {
+            name: 'first',
+            type: INTEGER_TYPE,
+            evaluation: EvaluationKind.evaluated,
+        },
+        {
+            name: 'second',
+            type: INTEGER_TYPE,
+            evaluation: EvaluationKind.evaluated,
+        },
+    ]
     readonly returnType = INTEGER_TYPE
+    readonly generics = []
 
     constructor() {
         this.source = createCoreSource('core.integers.add')
     }
 
-    validate(): ValidationProblem[] {
-        // No additional checks necessary beyond the arugment count and type checks.
-        return []
+
+    staticValidation(settings: OpCodeFrame): ValidationProblem[] {
+        return new ValidationCollector()
+            .add(validateMemoryValueInteger(settings, 0, false))
+            .add(validateMemoryValueInteger(settings, 1, false))
+            .validations
     }
 
-    evaluate(
-        source: RuntimeSourcePosition,
-        _context: ScriptContext, args: MemoryValue[],
-    ): OpCodeResult {
-        if (args[0].value === undefined || args[1].value === undefined) {
-            // Arguments must be evaluated.
-            return {
-                requires: args.filter((x: MemoryValue) => x.value === undefined)
-            } as RequiresArgumentEvaluation
-        }
-        const arg0 = extractMemoryValueInteger(source, 0, args[0])
-        if (isRuntimeError(arg0)) {
-            return { error: arg0 } as GeneratedError
-        }
-        const arg1 = extractMemoryValueInteger(source, 1, args[1])
-        if (isRuntimeError(arg1)) {
-            return { error: arg1 } as GeneratedError
-        }
+    runtimeValidation(settings: OpCodeFrame): ValidationProblem[] {
+        return new ValidationCollector()
+            .add(validateMemoryValueInteger(settings, 0, true))
+            .add(validateMemoryValueInteger(settings, 1, true))
+            .validations
+    }
+
+    evaluate(settings: OpCodeFrame): OpCodeResult {
+        const arg0 = memoryValueAsInteger(settings.args[0])
+        const arg1 = memoryValueAsInteger(settings.args[1])
         return {
             value: arg0 + arg1
         } as GeneratedValue
+    }
+
+    returnValidation(_settings: OpCodeFrame, _value: EvaluatedValue): ValidationProblem[] {
+        return []
     }
 }
