@@ -70,7 +70,7 @@ A user script provides several items:
 
 * Type definitions.  All values must have an explicit type, and the script provides all of its type definitions up front.  This includes the native types, which allows the interpreter to detect whether the script is compatible with the system.
 * Constant definitions.  Initial values for things, from numbers to strings to full tree layouts, can be constructed in the constants for reference by the script program.
-* Function definitions.  The heart of a program.  This is parsed by the script loader.
+* Function definitions.  The heart of a program.  This is parsed by the script loader.  Note that function definitions are a kind of constant, and so can be used as an argument or return value.
 
 
 ## Script Loader
@@ -84,30 +84,27 @@ The generated data can then be passed to the [validator](#validator) to ensure i
 
 The system embedding Caracara runs the interpreter on individual functions from the user script in order to retrieve a single typed value.  So, Caracara views memory from the function standpoint.
 
-Each function is nothing more than indexed values.  The indexed values may take two forms:
+Each function is nothing more than indexed values.  The indexed values may take several forms:
 
 * Constant reference.  One of these is the structured type argument passed to the function.
-* [Op Code](#op-codes) and arguments.  The op code indicates an action for the interpreter to run, and the arguments are a list of memory indicies.  This implies a directed graph that the validator should ensure is acyclic.
+* [Op Code](#op-codes) and arguments.  The op code indicates an action for the interpreter to run, and the arguments are a list of memory indicies.  This implies a directed graph.
+* Call a function with an argument.  The function is a value, either from an argument or a constant.  The argument is a structured type, whose value is another memory index.
+* Create a new structure or iterable, whose values come from in-scope values.
 
-The return value is also one of the indexed values, and may be either a constant reference or an opcode.
+The return value is also one of the indexed values, and may be one of those cell types.
 
 The op code + memory index references allows for the interpreter to memoize values, share them where possible, shorten execution frames, throw away unused values, perform forest detangling and parallel execution, and many other optimizations.
 
 Under the hood, the memory system stores individual values as "cells", which may include evaluated (memoized) values.  Lists and structured types are cells that store collections of references to other cells.  The interpreter gains much of its power by condensing these cells to provide optimal paths through the program.
+
+Additionally, the opcodes may construct new values.  Because of the unmodifiable form of the values, the construction of new values can be optimized to not copy all the underlying data.
 
 
 # System Functions
 
 The embedding system should provide system functions to provide core functionality used by scripts.  These can be anything from adding two numbers together, to performing a map-reduce, to looking up all the zip codes in a city.
 
-System functions can be broken into two categories:
-
-* functional - they always return the same value for the same inputs, and are side-effect free, *for the life of the executing script*.  So, for example, an HTTP server would need to run a script separately for each client request.
-* variant - they can return different output for the same input (for example, `random(10)`).
-
-It's up to the system function to ensure it's properly marked.
-
-Variant system functions severely cripple the optimizations inherit in a functional system by preventing memoization.  Not all interpreters are expected to support variant functions.
+System functions always return the same value for the same inputs, and are side-effect free, *for the life of the executing script*.  So, for example, an HTTP server would need to run a script separately for each client request.
 
 
 ## Op Codes
