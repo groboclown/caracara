@@ -30,7 +30,7 @@ export function createConstantCall(cc: CallConstruction<ConstantRefMemoryCell>):
         result: new ValidatingConstantCall(
             cc.callable.source,
             cc.callIndex,
-            constRes.result,
+            constRes.result.constant as EvaluatedValue,
             cc.typeStore,
             cc.argument.type,
         ),

@@ -9,7 +9,7 @@ import { ANY_STRUCT_TYPE } from '../../src/common/helpers'
 import { CallableValue } from '../../src/vm-api/memory-store'
 import { CALLABLE_ARGUMENT_MEMORY_INDEX, CALLABLE_RETURN_MEMORY_INDEX } from '../../src/vm-api/memory-store/value'
 import { ConstantRefMemoryCell, ExternalMemoryCell } from '../../src/vm-api/memory-store/cell'
-import { isGeneratedValue } from '../../src/vm-api/memory-store/returns'
+import { GeneratedValue, isGeneratedValue } from '../../src/vm-api/memory-store/returns'
 
 describe('Functional test for the interpreter', () => {
     const nativeTypes: VmNativeType[] = [
@@ -73,10 +73,7 @@ describe('Functional test for the interpreter', () => {
             const interpreter = interpreterRes.result as Interpreter
             const res = await interpreter.runFunction("constant-load", "load-one", {})
             expect(isGeneratedValue(res)).toBe(true)
+            expect((<GeneratedValue>res).value).toBe(1)
         })
-    })
-
-    describe('with a single simple opcode', () => {
-
     })
 })
