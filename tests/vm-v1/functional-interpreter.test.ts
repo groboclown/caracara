@@ -66,12 +66,12 @@ describe('Functional test for the interpreter', () => {
                 },
             } as Module,
         ]
-        it('then it produces the constant value', () => {
+        it('then it produces the constant value', async () => {
             const interpreterRes = scriptLoader.parseScript(modules)
             expect(interpreterRes.problems).toStrictEqual([])
             expect(interpreterRes.result).not.toBe(undefined)
             const interpreter = interpreterRes.result as Interpreter
-            const res = interpreter.runFunction("constant-load", "load-one", {})
+            const res = await interpreter.runFunction("constant-load", "load-one", {})
             expect(isGeneratedValue(res)).toBe(true)
         })
     })

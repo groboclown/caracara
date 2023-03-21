@@ -2,11 +2,11 @@
 
 import { ValidationResult } from "../../errors/struct"
 import { RuntimeSourcePosition } from "../../source"
-import { OpCodeInstruction } from "../../vm-api/interpreter"
+import { InterpreterDebuggerCallbacks, OpCodeInstruction } from "../../vm-api/interpreter"
 import { StoredConstantValue } from "../../vm-api/interpreter/loaded-script"
 import { ConstantRefMemoryCell, EvaluatedValue, GeneratedValue, OpCodeResult } from "../../vm-api/memory-store"
 import { isVmStructuredType, TypeStore, VmStructuredType } from "../../vm-api/type-system"
-import { MemoryValueManager } from "../memory"
+import { MemoryFront } from "../memory"
 import { CompiledCall, RuntimeAction } from "./defs"
 import { ArgNormalizer, CallConstruction, getConstantValue } from "./internal"
 
@@ -15,7 +15,6 @@ export function createConstantCall(cc: CallConstruction<ConstantRefMemoryCell>):
     const constRes = getConstantValue(
         cc.returns,
         cc.moduleMemory,
-        cc.moduleConsts,
         cc.typeStore,
     )
     if (constRes.result === undefined) {
@@ -59,8 +58,9 @@ export class ValidatingConstantCall implements CompiledCall {
 
     constructCall(
         _opcodes: { [mnemonic: string]: OpCodeInstruction; },
-        _memoryManager: MemoryValueManager,
+        _localMemory: MemoryFront,
         argument: { [key: string]: StoredConstantValue },
+        _debuggerCallback: InterpreterDebuggerCallbacks,
     ): ValidationResult<RuntimeAction> {
         const constValueRes = this.normalizer.validateArgument(argument)
         if (constValueRes.result === undefined) {
@@ -68,7 +68,6 @@ export class ValidatingConstantCall implements CompiledCall {
                 result: undefined,
                 problems: constValueRes.problems,
             }
-
         }
         return {
             result: this.action,

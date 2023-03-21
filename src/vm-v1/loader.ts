@@ -64,8 +64,8 @@ export class ScriptLoaderImpl implements ScriptLoader {
             types: this.opcodes.typeManager.getTypeStore(),
         } as ScriptContext
         const compiler = new RootCompiler(
-            memoryRes.result.memory.map((mcm) => mcm.memory),
-            memoryRes.result.moduleConsts,
+            memoryRes.result.memory,
+            context.types,
             this.opcodes.opcodes,
             new CachingCallCompiler(context.types),
         )

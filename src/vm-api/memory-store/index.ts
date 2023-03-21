@@ -31,7 +31,7 @@ export type {
 } from './value'
 export type {
     MemoryFactory,
-    StructureFactory,
+    StructuredFactory,
     IterableFactory,
     CallFactory,
 } from './factory'

@@ -6,7 +6,7 @@ import { CallableValue } from "../../vm-api/memory-store"
 import { CallingMemoryCell, ConstantRefMemoryCell, isCallingMemoryCell, isConstantRefMemoryCell, isIterableReferenceMemoryCell, isOpCodeMemoryCell, isStructureReferenceMemoryCell, IterableReferenceMemoryCell, MemoryCell, OpCodeMemoryCell, StructureReferenceMemoryCell } from "../../vm-api/memory-store/cell"
 import { CALLABLE_ARGUMENT_MEMORY_INDEX, CALLABLE_RETURN_MEMORY_INDEX } from "../../vm-api/memory-store/value"
 import { isVmCallableType, TypeStore } from "../../vm-api/type-system"
-import { InternalMemoryValue } from "../memory"
+import { MemoryStore } from "../memory"
 import { createCallingCodeCall } from "./call-calling"
 import { createConstantCall } from "./call-constant"
 import { createIterableCall } from "./call-iterable"
@@ -27,20 +27,19 @@ export class CachingCallCompiler implements CallCompiler {
     }
 
     compile(
-        moduleMemory: InternalMemoryValue[],
-        moduleConsts: { [id: string]: number; },
+        moduleMemory: MemoryStore,
         callIndex: number,
     ): ValidationResult<CompiledCall> {
         if (this.cache[callIndex] !== undefined) {
             return this.cache[callIndex]
         }
-        const callMem = moduleMemory[callIndex]
-        if (!isVmCallableType(callMem.cell.type) || callMem.constant === undefined) {
+        const callMem = moduleMemory.get(callIndex)
+        if (callMem === undefined || !isVmCallableType(callMem.cell.type) || callMem.constant === undefined) {
             return {
                 result: undefined,
                 problems: [
                     {
-                        source: callMem.cell.source,
+                        source: callMem === undefined ? null : callMem.cell.source,
                         problemId: ERROR__IMPL_NOT_CALLABLE,
                         parameters: {},
                     } as ValidationProblem
@@ -51,7 +50,6 @@ export class CachingCallCompiler implements CallCompiler {
         const cc: CallConstruction<MemoryCell> = {
             callable,
             moduleMemory,
-            moduleConsts,
             callIndex,
             argument: callable.cells[CALLABLE_ARGUMENT_MEMORY_INDEX],
             returns: callable.cells[CALLABLE_RETURN_MEMORY_INDEX],

@@ -1,8 +1,8 @@
 // Mock memory construction tools for testing.
 
-import { CallFactory, EvaluatedValue, IterableFactory, MemoryFactory, MemoryValue, StructureFactory } from "../../src/vm-api/memory-store"
+import { CallFactory, EvaluatedValue, IterableFactory, MemoryFactory, MemoryValue, StructuredFactory } from "../../src/vm-api/memory-store"
 import { FactoryMemory, FactoryValue } from "../../src/vm-api/memory-store/factory"
-import { VmType } from "../../src/vm-api/type-system"
+import { VmStructuredType, VmType } from "../../src/vm-api/type-system"
 import { MockModule } from "./mock-module"
 
 // MockIterableFactory Iterable factory
@@ -34,11 +34,19 @@ export class MockIterableFactory implements IterableFactory {
 }
 
 // MockStructureFactory Structure factory
-export class MockStructureFactory implements StructureFactory {
+export class MockStructureFactory implements StructuredFactory {
     readonly scope: MockModule
 
     constructor(scope: MockModule) {
         this.scope = scope
+    }
+
+    updateFromValues(_base: MemoryValue, _updatedValues: { [name: string]: EvaluatedValue }, _newType?: VmStructuredType | undefined): FactoryValue {
+        throw new Error("Method not implemented.")
+    }
+
+    updateFromMemory(_base: MemoryValue, _updatedValues: { [name: string]: MemoryValue }, _newType?: VmStructuredType | undefined): FactoryValue {
+        throw new Error("Method not implemented.")
     }
 
     createFromMemory(_value: { [name: string]: MemoryValue }, _type: VmType): FactoryValue {
@@ -70,7 +78,7 @@ export class MockMemoryFactory implements MemoryFactory {
     readonly mockCall: MockCallFactory
 
     readonly iterable: IterableFactory
-    readonly structure: StructureFactory
+    readonly structure: StructuredFactory
     readonly call: CallFactory
 
     constructor(scope: MockModule) {

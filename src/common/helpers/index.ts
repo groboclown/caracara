@@ -5,7 +5,7 @@ export {
     isEvaluatedAnyStructure,
     isMemoryCellAnyStructure,
     isMemoryValueAnyStructure,
-} from './type-any-struct'
+} from '../structures/type-any-struct'
 export {
     GENERIC_T_TYPE,
     GENERIC_K_TYPE,

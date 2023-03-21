@@ -13,6 +13,7 @@ export const VM_INSTRUCTION_ORDER_VIOLATION = 1 | ERROR__VM_EXECUTION
 const ERROR__VM_BUG                         = 0xf0000 | VM_ERROR
 export const VM_BUG_UNKNOWN_PRIMARY_TYPE    = 1 | ERROR__VM_BUG
 export const VM_BUG_NON_EVALUATED_VALUE     = 2 | ERROR__VM_BUG
+export const VM_BUG_BAD_SPLICE_RANGE        = 3 | ERROR__VM_BUG
 
 
 const USER_ERROR                            = 0x200000
@@ -28,6 +29,7 @@ const IMPL_ERROR                            = 0x300000
 
 const ERROR__IMPL_RUNTIME                   = 0x10000 | IMPL_ERROR
 export const ERROR__IMPL_RETURN_VALUE_TYPE  = 1 | ERROR__IMPL_RUNTIME
+export const ERROR__IMPL_WRONG_VALUE_TYPE   = 2 | ERROR__IMPL_RUNTIME
 
 const ERROR__IMPL_SETUP                               = 0x20000 | IMPL_ERROR
 export const ERROR__IMPL_DUPLICATE_OPCODES            = 1 | ERROR__IMPL_SETUP
@@ -42,6 +44,7 @@ export const ERROR__IMPL_ARGUMENT_EVAL_SHALLOW_SIMPLE = 9 | ERROR__IMPL_SETUP
 export const ERROR__IMPL_UNBOUND_GENERIC              = 10 | ERROR__IMPL_SETUP
 export const ERROR__IMPL_ARGUMENT_REQUIRES_STRUCT_BINDING = 11 | ERROR__IMPL_SETUP
 export const ERROR__IMPL_DUPLICATE_TYPE               = 12 | ERROR__IMPL_SETUP
+export const ERROR__IMPL_UNKNOWN_TYPE                 = 13 | ERROR__IMPL_SETUP
 
 const ERROR__IMPL_SCRIPT                             = 0x30000 | IMPL_ERROR
 export const ERROR__IMPL_MISSING_NATIVE_TYPE         = 1 | ERROR__IMPL_SCRIPT

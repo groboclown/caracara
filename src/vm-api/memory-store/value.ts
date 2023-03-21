@@ -20,14 +20,24 @@ type IterableVisitor = (
 ) => boolean
 
 // IterableValue The value stored in VmIterableType cells.
+//   Constructed with functions to allow flexible underlying implementations,
+//   in particular to allow for conserving memory.  Uses a forEach call to allow
+//   for easy looping over the values while making fast looping logic in the
+//   implementations.
 export interface IterableValue {
     // forEach Pass each item in the iterable into the callback until the end of the list or true is returned.
-    //   If startIndex is given, then the iteration
+    //   If startIndex is given, then the iteration starts at that position.
+    //   If endIndex is given, then the iteration stops at the position just before that index.
+    //   startIndex MUST be <= endIndex, or this does nothing.
     forEach(callback: IterableVisitor): void
     forEach(callback: IterableVisitor, options: {
         startIndex?: number,
         endIndex?: number,
     }): void
+
+    // get Get the value at the index.
+    //   If the index is out of range, undefined is returned.
+    get(index: number): MemoryValue | undefined
 
     // size The number of items in the iterable.
     size(): number
@@ -41,12 +51,29 @@ export interface KeyOfValue {
     readonly key: StructuredKeyType
 }
 
+type StructuredItemVisitor = (
+    key: StructuredKeyType, value: MemoryValue,
+) => boolean
+
 // StructuredValue The value stored in VmStructuredType calls.
-//   In order for a structured value to be evaluated, all its
-//   keys' values must be evaluated.  This is a non-lazy approach.
-//   This may change in the future.
+//   Constructed with functions to allow for optimal memory implementations.
 export interface StructuredValue {
-    readonly store: { [key: StructuredKeyType]: MemoryValue }
+    // keys Get an array of all the keys stored in this structured value.
+    //   It must contain at least the same set of keys that the corresponding type provides,
+    //   but could include more.
+    keys(): StructuredKeyType[]
+
+    // get Get the value of the key provided.
+    //   Returns undefined if the key is not part of this structure.
+    get(key: StructuredKeyType): MemoryValue | undefined
+
+    // forEach Loop over the items (key and value) in this structure.
+    forEach(callback: StructuredItemVisitor): void
+
+    // contains Check if the key is included in this structure.
+    //   Equivalent to calling: `get(key) !== undefined`, but
+    //   makes explicit the intent of the caller.
+    contains(key: StructuredKeyType): boolean
 }
 
 // CALLABLE_RETURN_MEMORY_INDEX Memory index number in the callable value that contains the returned value.

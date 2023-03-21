@@ -12,8 +12,12 @@ export interface Interpreter {
     // setDebugger Set callbacks into the debugger for interpreter execution.
     setDebugger(callback: InterpreterDebuggerCallbacks): void
 
-    // runFunction Run a function with arguments and return the result.
-    // The function must be a CallableValue constant stored in the module with the given
+    // runFunction Run a function with arguments and return the result in a promise.
+    //   The function must be a CallableValue constant stored in the module with the given
     //   name.
-    runFunction(module: string, name: string, argument: {[key: string]: StoredConstantValue}): GeneratedValue | GeneratedError
+    runFunction(
+        module: string,
+        name: string,
+        argument: {[key: string]: StoredConstantValue},
+    ): Promise<GeneratedValue | GeneratedError>
 }

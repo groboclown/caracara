@@ -2,17 +2,16 @@
 
 import { ValidationResult } from '../../errors/struct'
 import { InterpreterDebuggerCallbacks, OpCodeInstruction } from '../../vm-api/interpreter'
-import { OpCodeResult, VmOpCode } from '../../vm-api/memory-store'
-import { MemoryValueManager } from '../memory/constant-memory'
-import { InternalMemoryValue } from '../memory'
+import { EvaluatedValue, OpCodeResult, VmOpCode } from '../../vm-api/memory-store'
+import { MemoryFront, MemoryStore } from '../memory'
 import { StoredConstantValue } from '../../vm-api/interpreter/loaded-script'
 
 // CallCompiler A Just In Time compiler for the interpreter
 export interface CallCompiler {
     // compile Compile the memory value at the call index.
+    //   Call index is the memory store's memory value index.
     compile(
-        localMemory: InternalMemoryValue[],
-        moduleConsts: {[id: string]: number},
+        moduleMemory: MemoryStore,
         callIndex: number,
     ): ValidationResult<CompiledCall>
 }
@@ -20,7 +19,10 @@ export interface CallCompiler {
 // RuntimeAction The action that a compiled call constructs from invocation.
 export interface RuntimeAction {
     readonly dependencies: RuntimeAction[]
-    compute(dependencies: OpCodeResult[]): OpCodeResult | RuntimeAction
+
+    // Compute the operation, and include the results of the dependencies (ordered).
+    //
+    compute(dependencies: EvaluatedValue[]): OpCodeResult | RuntimeAction
 }
 
 // isRuntimeAction Type checker.
@@ -36,7 +38,7 @@ export interface CompiledCall {
     // constructCall Uses the argument and opcodes to construct a runtime action chain.
     constructCall(
         opcodes: {[mnemonic: VmOpCode]: OpCodeInstruction},
-        memoryManager: MemoryValueManager,
+        localMemory: MemoryFront,
         argument: { [key: string]: StoredConstantValue },
         debuggerCallback: InterpreterDebuggerCallbacks,
     ): ValidationResult<RuntimeAction>

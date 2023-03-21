@@ -2,10 +2,9 @@
 // Because the complex memory values are stored efficiently in the VM,
 //   the data values must be managed by the VM, not the opcode.
 
-import { VmType } from "../type-system"
 import { EvaluatedValue, MemoryValue } from "./value"
 import { GeneratedValue, LazyValue, GeneratedError } from './returns'
-import { StructuredKeyType } from "../type-system/categories"
+import { StructuredKeyType, VmIterableType, VmStructuredType } from "../type-system/categories"
 
 // MemoryFactory Constructs iterable and structure evaluated values.
 //   The factory is valid only for the context that receives it.
@@ -14,7 +13,7 @@ export interface MemoryFactory {
     readonly iterable: IterableFactory
 
     // structure Generates structures
-    readonly structure: StructureFactory
+    readonly structure: StructuredFactory
 
     // call Generates memory that is populated from a call
     readonly call: CallFactory
@@ -38,14 +37,14 @@ export type FactoryValue = GeneratedValue | GeneratedError
 // FactoryMemory A constructed memory value with a cell.
 export type FactoryMemory = LazyValue | GeneratedError
 
-// StructureFactory Generates new structures.
-export interface StructureFactory {
+// StructuredFactory Generates new structured values.
+export interface StructuredFactory {
     // createFromMemory Creates a new structure of the given type for the memory values.
     //   The type must be the structure type.
     //   If the types don't align, then a GeneratedError is returned.
     createFromMemory(
         value: {[name: StructuredKeyType]: MemoryValue},
-        type: VmType,
+        type: VmStructuredType,
     ): FactoryValue
 
     // createFromValues Creates a new structure of the given type for the evaluated values.
@@ -53,7 +52,23 @@ export interface StructureFactory {
     //   If the types don't align, then a GeneratedError is returned.
     createFromValues(
         value: {[name: StructuredKeyType]: EvaluatedValue},
-        type: VmType,
+        type: VmStructuredType,
+    ): FactoryValue
+
+    // updateFromValues Makes changes to the base structured type value with additional values.
+    //   If given, the newType will cause the returned value to have the new type.
+    updateFromValues(
+        base: MemoryValue,
+        updatedValues: {[name: StructuredKeyType]: EvaluatedValue},
+        newType?: VmStructuredType,
+    ): FactoryValue
+
+    // updateFromMemory Makes changes to the base structured type value with additional values.
+    //   If given, the newType will cause the returned value to have the new type.
+    updateFromMemory(
+        base: MemoryValue,
+        updatedValues: {[name: StructuredKeyType]: MemoryValue},
+        newType?: VmStructuredType,
     ): FactoryValue
 }
 
@@ -62,15 +77,16 @@ export interface StructureFactory {
 //   as in many cases, working with indicies
 export interface IterableFactory {
     // createFromArray Creates a new iterable from an array of memory values.
+    //   The type must be the iterable type.
     //   The values must all have a compatible type as the argument, or a GeneratedError is
     //   returned.
-    createFromMemoryArray(values: MemoryValue[], type: VmType): FactoryValue
+    createFromMemoryArray(values: MemoryValue[], type: VmIterableType): FactoryValue
 
     // createFromValueArray Creates a new iterable of a given type from an array of evaluated values.
     //   The type must be the iterable type.
     //   This constructs dynamic memory cells.
     //   This can return a GeneratedError if the value types aren't right.
-    createFromValueArray(values: EvaluatedValue[], type: VmType): FactoryValue
+    createFromValueArray(values: EvaluatedValue[], type: VmIterableType): FactoryValue
 
     // append Add a new value to the end of the iterable, and return a new iterable
     //   'iterable' must be a memory cell with an iterable type,

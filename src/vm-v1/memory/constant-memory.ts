@@ -4,29 +4,29 @@ import { ValidationCollector } from "../../common/helpers"
 import { ERROR__IMPL_CONSTANT_GENERIC_TYPE, ERROR__IMPL_TYPE_VALUE_MISMATCH, ERROR__IMPL_UNKNOWN_TYPE_CATEGORY } from "../../errors"
 import { ValidationProblem, ValidationResult } from "../../errors/struct"
 import { StoredConstantValue } from "../../vm-api/interpreter/loaded-script"
-import { CallableValue, EvaluatedValue, KeyOfValue, MemoryValue, NativeValue, StructuredValue } from "../../vm-api/memory-store"
+import { CallableValue, KeyOfValue, MemoryValue, NativeValue } from "../../vm-api/memory-store"
 import { ConstantRefMemoryCell, ExternalMemoryCell, isConstantRefMemoryCell } from "../../vm-api/memory-store/cell"
 import { isVmCallableType, isVmGenericRef, isVmIterableType, isVmKeyOfType, isVmNativeType, isVmStructuredType, VmType } from "../../vm-api/type-system"
-import { InternalMemoryValue, MemoryIterable } from "./memory-value"
-
-// MemoryCellManager An object that stores memory cell placements.
-export interface MemoryValueManager {
-    // addConstantMemoryCell Creates a cell value for external or constant values.
-    //   Does not need to perform type checking.  It just allocates the memory internally.
-    addConstantMemoryCell(
-        cell: ExternalMemoryCell | ConstantRefMemoryCell,
-        value: EvaluatedValue,
-    ): ValidationResult<InternalMemoryValue>
-}
+import { InternalMemoryValue } from "./memory-value"
+import { StructuredKeyType } from "../../vm-api/type-system/categories"
+import { MemoryFront } from "./store"
 
 // addConstantValue Recursive construction of a user-space value.
 //   Converts the StoredConstantValue into a memory value.
+//   Stores recursive values as memory cells in the memory front, and adds
+//   the returned memory value to the memory front.
 export function addConstantValue(
-    memoryManager: MemoryValueManager,
+    memoryManager: MemoryFront,
     cell: ExternalMemoryCell | ConstantRefMemoryCell,
     type: VmType,
     value: StoredConstantValue,
 ): ValidationResult<InternalMemoryValue> {
+    // Note: we could compress constants such that if they have the same value + type,
+    //   then they share the same underlying memory value (sources would need to be figured
+    //   out - maybe a touch of redirection?).  This would help shrink memory usage down,
+    //   while also making duplication of code much easier to identify to help with
+    //   memoization compression.
+
     // Easy stuff first.
     if (isVmNativeType(type)) {
         if (!type.isType(value)) {
@@ -38,7 +38,12 @@ export function addConstantValue(
                 ],
             }
         }
-        return memoryManager.addConstantMemoryCell(cell, value as NativeValue)
+        return memoryManager.adder.addMemoryValue(
+            cell.source,
+            cell,
+            value as NativeValue,
+            true,
+        )
     }
     if (isVmKeyOfType(type)) {
         // TODO ensure value is a KeyOfValue
@@ -50,12 +55,22 @@ export function addConstantValue(
                 ],
             }
         }
-        return memoryManager.addConstantMemoryCell(cell, value as KeyOfValue)
+        return memoryManager.adder.addMemoryValue(
+            cell.source,
+            cell,
+            value as KeyOfValue,
+            true,
+        )
     }
 
     if (isVmCallableType(type)) {
         // The callable value will need to be compiled at a later time.
-        return memoryManager.addConstantMemoryCell(cell, value as CallableValue)
+        return memoryManager.adder.addMemoryValue(
+            cell.source,
+            cell,
+            value as CallableValue,
+            true,
+        )
     }
 
     // Recursive stuff.
@@ -100,7 +115,12 @@ export function addConstantValue(
                 problems: problems.validations,
             }
         }
-        return memoryManager.addConstantMemoryCell(cell, new MemoryIterable(parentValue))
+        return memoryManager.adder.addMemoryValue(
+            cell.source,
+            cell,
+            memoryManager.iterable.createFromMemoryArray(parentValue, type),
+            true,
+        )
     }
 
     if (isVmStructuredType(type)) {
@@ -115,7 +135,7 @@ export function addConstantValue(
         }
 
         // Delay creation until all the children are added.
-        const parentValue = { store: {} } as StructuredValue
+        const parentValue: {[key: StructuredKeyType]: MemoryValue} = {}
         const problems = new ValidationCollector()
         Object.keys(value).forEach((key) => {
             const iv = value as object
@@ -127,10 +147,15 @@ export function addConstantValue(
             )
             problems.add(mem.problems)
             if (mem.result !== undefined) {
-                parentValue.store[key] = mem.result
+                parentValue[key] = mem.result
             }
         })
-        return memoryManager.addConstantMemoryCell(cell, parentValue)
+        return memoryManager.adder.addMemoryValue(
+            cell.source,
+            cell,
+            memoryManager.structure.createFromMemory(parentValue, type),
+            true,
+        )
     }
     return {
         result: undefined,

@@ -1,9 +1,9 @@
 // Extract a key value from a structure.
 
-import { ValidationProblem } from '../../errors'
+import { RuntimeError, ValidationProblem, VM_MEMORY_TYPE_CONFUSION } from '../../errors'
 import { createCoreSource, RuntimeSourcePosition } from '../../source'
 import { OpCodeInstruction, EvaluationKind, OpCodeFrame } from '../../vm-api/interpreter'
-import { EvaluatedValue, LazyValue, OpCodeResult, StructuredValue, VmOpCode } from '../../vm-api/memory-store'
+import { EvaluatedValue, GeneratedError, LazyValue, OpCodeResult, StructuredValue, VmOpCode } from '../../vm-api/memory-store'
 import { KeyOfValue } from '../../vm-api/memory-store/value'
 import { VmGenericBindHint } from '../../vm-api/type-system'
 import { GENERIC_S_TYPE, BOUND_KEYOF_S_TYPE, GENERIC_R_TYPE } from '../helpers/type-generic'
@@ -68,10 +68,19 @@ export class GetKeyOpCode implements OpCodeInstruction {
         // Arguments are expected to be already matching the declaration.
         const structure = settings.args[0].memoized as StructuredValue
         const key = settings.args[1].memoized as KeyOfValue
-
-        // const keyType = structure.store[key.key]
-        return {
-            lazy: structure.store[key.key]
-        } as LazyValue
+        const lazy = structure.get(key.key)
+        if (lazy === undefined) {
+            return {
+                error: {
+                    source: settings.source,
+                    errorId: VM_MEMORY_TYPE_CONFUSION,
+                    parameters: {
+                        type: settings.args[0].cell.type.name,
+                        key: key.key,
+                    },
+                } as RuntimeError
+            } as GeneratedError
+        }
+        return { lazy } as LazyValue
     }
 }

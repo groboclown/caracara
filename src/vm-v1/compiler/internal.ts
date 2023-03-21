@@ -6,13 +6,12 @@ import { RuntimeSourcePosition } from "../../source";
 import { ConstantValue, StoredConstantValue } from "../../vm-api/interpreter/loaded-script";
 import { CallableValue, ConstantRefMemoryCell, MemoryCell } from "../../vm-api/memory-store";
 import { TypeStore, VmStructuredType } from "../../vm-api/type-system";
-import { createModuleConstantId, InternalMemoryValue } from "../memory";
+import { InternalMemoryValue, MemoryStore } from "../memory";
 
 // CallConstruction Assembly of information to pass between compiler sub-parts.
 export interface CallConstruction<R extends MemoryCell> {
     readonly callable: CallableValue
-    readonly moduleMemory: InternalMemoryValue[]
-    readonly moduleConsts: { [id: string]: number; }
+    readonly moduleMemory: MemoryStore
     readonly callIndex: number
     readonly argument: MemoryCell
     readonly returns: R
@@ -51,12 +50,10 @@ export class ArgNormalizer {
 // getConstantValue Get a constant value, with type validation, from the module memory store.
 export function getConstantValue(
     constantCell: ConstantRefMemoryCell,
-    moduleMemory: InternalMemoryValue[],
-    moduleConsts: { [id: string]: number; },
+    moduleMemory: MemoryStore,
     typeStore: TypeStore,
 ): ValidationResult<InternalMemoryValue> {
-    const constId = createModuleConstantId(constantCell.module, constantCell.constant)
-    const constIndex = moduleConsts[constId]
+    const constIndex = moduleMemory.lookupConstIndex(constantCell.module, constantCell.constant)
     if (constIndex === undefined) {
         return {
             result: undefined,
@@ -72,7 +69,8 @@ export function getConstantValue(
             ]
         }
     }
-    const value = moduleMemory[constIndex]
+    // If returned as undefined from lookup, it must be valid.
+    const value = moduleMemory.get(constIndex) as InternalMemoryValue
     const typeCheck = typeStore.enforceTypeMatch(
         constantCell.source,
         value.cell.type,

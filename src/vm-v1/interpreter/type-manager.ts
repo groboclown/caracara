@@ -1,6 +1,6 @@
 // The type store manager implementation.
 
-import { ERROR__USER__TYPE_MISMATCH, ERROR__USER__UNKOWN_TYPE, RuntimeError, VM_BUG_UNKNOWN_PRIMARY_TYPE } from "../../errors"
+import { ERROR__IMPL_UNKNOWN_TYPE, ERROR__USER__TYPE_MISMATCH, ERROR__USER__UNKOWN_TYPE, RuntimeError, VM_BUG_UNKNOWN_PRIMARY_TYPE } from "../../errors"
 import { RuntimeSourcePosition } from "../../source"
 import { isVmCallableType, isVmGenericRef, isVmIterableType, isVmKeyOfType, isVmNativeType, isVmStructuredType, TypeStore, TypeStoreManager, VmGenericRef, VmType } from "../../vm-api/type-system"
 
@@ -283,8 +283,20 @@ class InternalTypeStore implements TypeStore {
     }
 
     enforceTypeMatch(
-        requestor: RuntimeSourcePosition, actual: VmType, expected: VmType,
+        requestor: RuntimeSourcePosition, actual: VmType, expected?: VmType,
     ): RuntimeError | null {
+        if (expected === undefined) {
+            expected = this.getTypeByName(actual.name)
+            if (expected === undefined) {
+                return {
+                    source: requestor,
+                    errorId: ERROR__IMPL_UNKNOWN_TYPE,
+                    parameters: {
+                        type: actual.name,
+                    }
+                } as RuntimeError
+            }
+        }
         const ret = innerTypeMatch(requestor, expected, actual, this.typeCheckCache)
         if (ret !== true) {
             ret.parameters = {
@@ -500,7 +512,6 @@ function createTypeMismatchError(source: RuntimeSourcePosition, expected: VmType
 
 // createTypeMismatchError Create a type mismatch error.
 function createGenericRefMismatchError(source: RuntimeSourcePosition, expected: VmType | VmGenericRef, actual: VmType | VmGenericRef): RuntimeError {
-
     return {
         source,
         errorId: ERROR__USER__TYPE_MISMATCH,

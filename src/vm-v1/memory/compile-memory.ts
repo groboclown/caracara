@@ -4,23 +4,24 @@ import { ValidationCollector } from "../../common/helpers"
 import { ERROR__IMPL_DUPLICATE_MODULE_NAMES } from "../../errors"
 import { RuntimeError, ValidationResult } from "../../errors/struct"
 import { ConstantValue, Module } from "../../vm-api/interpreter"
-import { CallableValue, ConstantRefMemoryCell, EvaluatedValue } from "../../vm-api/memory-store"
-import { ExternalMemoryCell, isConstantRefMemoryCell } from "../../vm-api/memory-store/cell"
+import { CallableValue, CallFactory, ConstantRefMemoryCell, EvaluatedValue, IterableFactory, StructuredFactory } from "../../vm-api/memory-store"
+import { ExternalMemoryCell, isConstantRefMemoryCell, MemoryCell } from "../../vm-api/memory-store/cell"
 import { isVmCallableType, TypeStoreManager } from "../../vm-api/type-system"
-import { addConstantValue, MemoryValueManager } from "./constant-memory"
-import { InternalMemoryValue, ModuleConstantMemory } from "./memory-value"
+import { addConstantValue } from "./constant-memory"
+import { InternalMemoryValue } from "./memory-value"
+import { MemoryFront, MemoryStore, MemoryValueAdder } from "./store"
+import { SimpleIterableFactory } from "./iterable-simple"
+import { SimpleStructuredFactory } from "./struct-simple"
+import { SimpleCallFactory } from "./call-simple"
+import { RuntimeSourcePosition } from "../../source"
 
 // CompiledMemory Modules converted to internal memory format.
 export interface CompiledMemory {
     // modules Modules indexed by name.
     readonly modules: {[name: string]: Module}
 
-    // moduleConsts Module constant identifier pointing to the memory index.
-    //   Identifier constructed by calling createModuleConstantId
-    readonly moduleConsts: {[id: string]: number}
-
     // memory Indexed constants (and sub-values) defined from the modules.
-    readonly memory: ModuleConstantMemory[]
+    readonly memory: MemoryStore
 }
 
 // compileMemory Compile the module constant values into internal forms.
@@ -31,8 +32,7 @@ export function compileMemory(
 ): ValidationResult<CompiledMemory> {
     const problems = new ValidationCollector()
     const moduleMap: {[name: string]: Module} = {}
-    const moduleConsts: {[id: string]: number} = {}
-    const memory = new CompilingMemoryManager()
+    const memory = new CompilingMemoryFront()
 
     modules.forEach((module) => {
         if (moduleMap[module.name] !== undefined) {
@@ -70,10 +70,6 @@ export function compileMemory(
                 constant.value,
             )
             problems.add(valueRes.problems)
-            if (valueRes.result !== undefined) {
-                const id = createModuleConstantId(module.name, constantName)
-                moduleConsts[id] = valueRes.result.cellIndex
-            }
         })
     })
 
@@ -81,48 +77,101 @@ export function compileMemory(
     return {
         result: {
             modules: moduleMap,
-            moduleConsts,
-            memory: memory.constMemory,
+            memory: memory.store,
         } as CompiledMemory,
         problems: problems.validations,
     }
 }
 
-// CompilingMemoryManager Creates memory from the constant converter.
+class ModuleMemoryStore implements MemoryStore {
+    memory: InternalMemoryValue[] = []
+    constLookup: {[key: string]: number} = {}
+
+    count(): number {
+        return this.memory.length
+    }
+
+    get(index: number): InternalMemoryValue | undefined {
+        return this.memory[index]
+    }
+
+    lookupConstIdIndex(constId: string): number | undefined {
+        return this.constLookup[constId]
+    }
+
+    lookupConstIndex(module: string, constant: string): number | undefined {
+        return this.constLookup[`${module}!${constant}`]
+    }
+
+    getConstIdByName(module: string, constant: string): string {
+        return `${module}!${constant}`
+    }
+
+    getConstIdByRef(ref: ConstantRefMemoryCell): string {
+        return `${ref.module}!${ref.constant}`
+    }
+}
+
+// ModuleMemoryAdder Adder implementation for the store.
+//   Tightly coupled with the store.
+class ModuleMemoryAdder implements MemoryValueAdder {
+    private readonly store: ModuleMemoryStore
+
+    constructor(store: ModuleMemoryStore) {
+        this.store = store
+    }
+
+    addMemoryValue(source: RuntimeSourcePosition, cell: MemoryCell, value: EvaluatedValue | undefined, isConstant?: boolean | undefined): ValidationResult<InternalMemoryValue> {
+        if (!isConstant || !isConstantRefMemoryCell(cell)) {
+            throw new Error(`only constant values allowed to be added during compile phase`)
+        }
+        const index = this.store.memory.length
+        const mem = new InternalMemoryValue(
+            source,
+            index,
+            cell,
+            value,
+        )
+        this.store.memory.push(mem)
+        if (isConstant && isConstantRefMemoryCell(cell)) {
+            this.store.constLookup[`${cell.module}!${cell.constant}`] = index
+        }
+        return {
+            result: mem,
+            problems: [],
+        }
+    }
+}
+
+// CompilingMemoryFront Creates memory from the constant converter.
 //   For the memory compiling phase, the memory can only come from constants.
-class CompilingMemoryManager implements MemoryValueManager {
-    constMemory: ModuleConstantMemory[] = []
+class CompilingMemoryFront implements MemoryFront {
+    readonly iterable: IterableFactory
+    readonly structure: StructuredFactory
+    readonly call: CallFactory
+    readonly adder: MemoryValueAdder
+    readonly store: MemoryStore
+
+    constructor() {
+        const memory = new ModuleMemoryStore()
+        this.store = memory
+        this.adder = new ModuleMemoryAdder(memory)
+        this.iterable = new SimpleIterableFactory()
+        this.structure = new SimpleStructuredFactory()
+        this.call = new SimpleCallFactory(this.adder)
+    }
 
     addConstantMemoryCell(
         cell: ConstantRefMemoryCell | ExternalMemoryCell,
         value: EvaluatedValue,
     ): ValidationResult<InternalMemoryValue> {
-        if (isConstantRefMemoryCell(cell)) {
-            const index = this.constMemory.length
-            const mem = new InternalMemoryValue(
-                cell.source,
-                index,
-                cell,
-                value,
-            )
-            this.constMemory.push({
-                memory: mem,
-                module: cell.module,
-                constant: cell.constant,
-            })
-            return {
-                result: mem,
-                problems: [],
-            }
-        }
-        throw new Error("Should only define constants for memory compilation phase")
+        return this.adder.addMemoryValue(
+            cell.source,
+            cell,
+            value,
+            true,
+        )
     }
-
-}
-
-// createModuleConstantId Create a module/constant identifier for quick lookups.
-export function createModuleConstantId(moduleName: string, constantName: string): string {
-    return `${moduleName}!${constantName}`
 }
 
 function registerConstantType(typeStore: TypeStoreManager, constant: ConstantValue): RuntimeError | null {
